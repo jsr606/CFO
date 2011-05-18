@@ -1,0 +1,32 @@
+00
+first sound
+0
+0.5
+1
+filtercut
+filtermix
+amplitude
+output
+filter res
+
+possible extensions:
+note offset
+freq offset
+
+automation:
+--- ----
+--- ----
+--- ----
+--- ----
+--- ----
+--- ----
+--- ----
+--- ----
+--- ----
+--- ----
+--- ----
+--- ----
+--- ----
+--- ----
+--- ----
+--- ----
