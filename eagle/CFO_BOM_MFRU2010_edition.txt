@@ -1,0 +1,145 @@
+CFO partlist - edited by hand, non-parts (pads etcs) removed, non-eagle parts added
+==========================================================================================
+this version for CFO MFRU edition 2010, manSEDANse workshop 2011, 4/10-2011
+==========================================================================================
+Exported from CFO rev 1.5_bak_jsr.brd at 6/15/11 21:39 
+==========================================================================================
+x Part               Value          Package       Library                  Position (mm)         Orientation
+
+x DIST               switch         1X03/90       pinhead                  (140.5 51)            R270
+x BASS               switch         1X03/90       pinhead                  (140.5 43.5)          R270
+
+x C2                 22p            C050-025X075  rcl                      (71.1519 72.3128)     R90
+x C3                 22p            C050-025X075  rcl                      (55.8893 72.3406)     R90
+x C10                10nF           C050-025X075  rcl                      (115.5633 11.3685)    R270
+x CL3                33n            C050-025X075  rcl                      (96.15 34.1)          R0
+x CL2                47n            C050-025X075  rcl                      (124.85 34)           R0
+x C1                 100n           C050-025X075  rcl                      (74.7393 72.2982)     R270
+x C4                 100n           C050-025X075  rcl                      (78.092 72.3306)      R270
+x C5                 100n           C050-025X075  rcl                      (18.8987 74.8509)     R90
+x C8                 100n           C050-025X075  rcl                      (109.9672 11.3168)    R270
+x C9                 100n           C050-025X075  rcl                      (126.5078 11.4433)    R90
+x CL_IN              2u2            E2,5-6        blushingboy_experimental (125.7 21.6)          R180
+x CL4                10u            E2,5-6        blushingboy_experimental (104 29)              R270
+x C6                 100u           E3,5-8        rcl                      (11.4949 75.444)      R270
+x C7                 100u           E3,5-8        rcl                      (11.4997 65.9713)     R90
+x CL5                330u           E2,5-6        blushingboy_experimental (123 28)              R0
+x CL6                10u            E2,5-6        blushingboy_experimental (-18 -37)             R0
+
+x CONTRAST           4.7k           TRIM_POT_PTH  SparkFun                 (38.6519 43.9962)     R90
+x D1                 1N4004         DO41-10       diode                    (4.3209 76.2091)      R90
+x DC1                DC21MMX        DC-21MM       powersupply              (-6.4416 81.6708)     R90
+x ENCODER            EC12E_SW       ALPS_EC12E_SW switch-alps              (136.4057 63.7769)    R270
+x EXPRESSION_CONTROL PG203J         PG203J        con-hirschmann           (-1.2408 48.6537)     R0
+x STYLOPHONE         PG203J         PG203J        con-hirschmann           (139.1984 -0.5876)    R180
+x AUDIO_OUT          PG203J         PG203J        con-hirschmann           (139.2529 18.019)     R180
+x IC1                ATMEGA         DIL28-3       atmel                    (69.4941 60.211)      R180
+x IC3                74HC595N       DIL16         74xx-eu                  (62.255 11.5338)      R270
+x IC4                74HC595N       DIL16         74xx-eu                  (74.9049 11.5048)     R90
+x IC5                               78XXL         v-reg                    (12.4506 87.9283)     R263
+x ICSP               ICSP           2X03          pinhead                  (45.5541 59.4185)     R90
+x IR_RX                             1X03          ir-receiver                (-6.9533 68.8385)     R90
+x LCD_DISPLAY                       1X16          pinhead                  (69.8556 45.9752)     R0
+
+x LED1                              LED5MM        led                      (11.3766 -6.294)      R270
+x LED2                              LED5MM        led                      (19.2176 -3.758)      R270
+x LED3                              LED5MM        led                      (27.3046 -6.611)      R270
+x LED4                              LED5MM        led                      (34.7606 -6.33)       R270
+x LED5                              LED5MM        led                      (42.1086 -3.819)      R270
+x LED6                              LED5MM        led                      (49.2836 -6.365)      R270
+x LED7                              LED5MM        led                      (55.8776 -3.773)      R270
+x LED8                              LED5MM        led                      (62.8946 -6.365)      R270
+x LED9                              LED5MM        led                      (70.0966 -6.338)      R270
+x LED10                             LED5MM        led                      (77.2646 -3.819)      R270
+x LED11                             LED5MM        led                      (84.2116 -6.325)      R270
+x LED12                             LED5MM        led                      (90.9066 -3.771)      R270
+x LED13                             LED5MM        led                      (97.8016 -6.325)      R270
+x LED14                             LED5MM        led                      (104.8966 -3.846)     R270
+x LED15                             LED5MM        led                      (112.0916 -6.325)     R270
+x LED16                             LED5MM        led                      (119.3866 -6.579)     R270
+x PWR_LED                           LED5MM        led                      (35.2058 67.0345)     R90
+x STATUS                            LED5MM        led                      (128.7394 50.916)     R90
+x IR                                LED5MM        IR led                   (128.6837 44.8888)    R90
+
+x MCP4921                           DIL08         ic-package               (102.9774 10.4479)    R180
+x NAV1               DTE6K          DTE6K         switch-misc              (2.2164 33.5436)      R0
+x NAV2               DTE6K          DTE6K         switch-misc              (16.9164 5.8436)      R0
+x NAV3               DTE6K          DTE6K         switch-misc              (4.4164 18.8436)      R0
+x NAV4               DTE6K          DTE6K         switch-misc              (29.9164 18.8436)     R0
+x NAV5               DTE6K          DTE6K         switch-misc              (16.9164 18.8436)     R0
+x NAV6               DTE6K          DTE6K         switch-misc              (16.9164 31.8436)     R0
+
+x R26                4.7            0207/10       rcl                      (91.8956 60.3816)     R270
+x RL1                10             0207/10       rcl                      (123 37.5)            R180
+x R7                 47             0207/10       rcl                      (123.3116 47.5153)    R270
+x R6                 220            0207/10       rcl                      (19.3044 41.5376)     R0
+x R10                220            0207/10       rcl                      (48.2745 20.4162)     R0
+x R11                220            0207/10       rcl                      (48.2745 17.9042)     R0
+x R12                220            0207/10       rcl                      (48.2745 15.3922)     R0
+x R13                220            0207/10       rcl                      (48.2745 12.8802)     R0
+x R14                220            0207/10       rcl                      (48.2745 10.3682)     R0
+x R15                220            0207/10       rcl                      (48.2745 7.8562)      R0
+x R16                220            0207/10       rcl                      (48.2745 5.3442)      R0
+x R17                220            0207/10       rcl                      (48.2745 2.5782)      R0
+x R18                220            0207/10       rcl                      (88.8855 2.4738)      R180
+x R19                220            0207/10       rcl                      (88.8855 4.9858)      R180
+x R20                220            0207/10       rcl                      (88.8855 7.4978)      R180
+x R21                220            0207/10       rcl                      (88.8855 10.0098)     R180
+x R22                220            0207/10       rcl                      (88.8855 12.5218)     R180
+x R23                220            0207/10       rcl                      (88.8855 15.0338)     R180
+x R24                220            0207/10       rcl                      (88.8855 17.5458)     R180
+x R25                220            0207/10       rcl                      (88.8855 20.3118)     R180
+x R27                220            0207/10       rcl                      (0.4997 -5.6694)      R180
+x R28                220            0207/10       rcl                      (15.7434 -11.7184)    R162.4
+x R29                220            0207/10       rcl                      (23.6382 -11.6477)    R162.2
+x R30                220            0207/10       rcl                      (31.1198 -11.5191)    R163.7
+x R31                220            0207/10       rcl                      (38.198 -11.5505)     R163.5
+x R32                220            0207/10       rcl                      (45.213 -11.645)      R163.5
+x R33                220            0207/10       rcl                      (52.4307 -11.6626)    R163.5
+x R34                220            0207/10       rcl                      (59.3887 -11.7339)    R163.5
+x R35                220            0207/10       rcl                      (66.4165 -11.8384)    R163.5
+x R36                220            0207/10       rcl                      (73.4096 -11.911)     R163.5
+x R37                220            0207/10       rcl                      (80.2467 -11.7583)    R163.5
+x R38                220            0207/10       rcl                      (87.3166 -11.7976)    R163.5
+x R39                220            0207/10       rcl                      (94.3397 -11.687)     R163.5
+x R40                220            0207/10       rcl                      (101.2719 -11.8822)   R163.5
+x R41                220            0207/10       rcl                      (108.1028 -11.8279)   R163.5
+x R42                220            0207/10       rcl                      (115.035 -11.6232)    R163.5
+x R43                220            0207/10       rcl                      (122.0164 -11.5153)   R163.5
+x R44                220            0207/10       rcl                      (128.9589 -11.4403)   R163.5
+x R45                220            0207/10       rcl                      (135.8551 -11.3387)   R163.5
+x R46                220            0207/10       rcl                      (142.7963 -11.194)    R163.5
+x R47                220            0207/10       rcl                      (-4.8856 18.3436)     R90
+x R48                220            0207/10       rcl                      (8.4004 5.3196)       R270
+x R49                220            0207/10       rcl                      (0.1144 10.3196)      R180
+x R50                220            0207/10       rcl                      (33.6864 27.6216)     R0
+x R51                220            0207/10       rcl                      (25.4324 32.6376)     R270
+x R2                 1k             0207/10       rcl                      (29.6208 63.4541)     R270
+x R8                 1k             0207/10       rcl                      (97.9502 60.3244)     R90
+x R9                 1k             0207/10       rcl                      (94.9682 60.3815)     R90
+x R1                 10k            0207/10       rcl                      (120.9879 11.222)     R90
+x R5                 10k            0207/10       rcl                      (26.7108 63.5257)     R270
+x R3                 10k            0207/10       rcl                      (123.4575 11.1547)    R270
+x R52                10k            0207/10       rcl                      (-6.0524 33.7524)     R270
+x R53                10k            0207/10       rcl                      (130.1744 -1.0556)    R90
+x R54                10k            0207/10       rcl                      (7.9032 48.6537)      R90
+x RL2                10k            0207/10       rcl                      (106.5 34)            R180
+x R4                 1M             0207/10       rcl                      (118.469 11.157)      R270
+
+x RX_ON/OFF                         1X03/90       pinhead                  (-2.5617 60.6615)     R90
+x S1                                B3F-10XX      switch-omron             (35.1588 73.8796)     R180
+x U$1                LM386          LM386         blushingboy_experimental (108 24)              R0
+x USB-TTL                           1X06          pinhead                  (72.5876 82.5212)     R173
+x XTAL               16mhz          QS            special                  (63.4763 72.233)      R180
+==========================================================================================
+non-eagle parts
+==========================================================================================
+x socket for atmega328
+x cooling pad for voltage regulator
+x knob for encoder
+x top for knob
+x 3 jumpers
+x tiny 10k potentiometer for volume control
+x male pin headers for LCD display
+x female pin headers for LCD display
+==========================================================================================
