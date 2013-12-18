@@ -1,0 +1,91 @@
+#######################################
+# Syntax Coloring Map For MMM Library
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+Music	KEYWORD1
+MotorA	KEYWORD1
+MotorB	KEYWORD1
+MotionA	KEYWORD1
+MotionB	KEYWORD1
+Midi	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+init	KEYWORD2
+checkMidi	KEYWORD2
+enableEnvelope	KEYWORD2
+disableEnvelope	KEYWORD2
+setEnvStage	KEYWORD2
+setDetune	KEYWORD2
+setDetune1	KEYWORD2
+setDetune2	KEYWORD2
+setDetune3	KEYWORD2
+setFrequency	KEYWORD2
+setFrequency1	KEYWORD2
+setFrequency2	KEYWORD2
+setFrequency3	KEYWORD2
+setSemitone1	KEYWORD2
+setSemitone2	KEYWORD2
+setSemitone3	KEYWORD2
+setWaveform	KEYWORD2
+setWaveform1	KEYWORD2
+setWaveform2	KEYWORD2
+setWaveform3	KEYWORD2
+setGain	KEYWORD2
+setGain1	KEYWORD2
+setGain2	KEYWORD2
+setGain3	KEYWORD2
+getGain	KEYWORD2
+getGain1	KEYWORD2
+getGain2	KEYWORD2
+getGain3	KEYWORD2
+noteOn	KEYWORD2
+noteOff	KEYWORD2
+getNoteFrequency	KEYWORD2
+setAttack	KEYWORD2
+setDecay	KEYWORD2
+setSustain	KEYWORD2
+setRelease	KEYWORD2
+update_position	KEYWORD2
+update_mass_spring_damper	KEYWORD2
+torque	KEYWORD2
+direction	KEYWORD2
+stop	KEYWORD2
+start	KEYWORD2
+restart KEYWORD2
+setFM2	KEYWORD2
+
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+NUM_OSCILLATORS	LITERAL1
+BIT_DEPTH	LITERAL1
+MIDI	LITERAL1
+MIDI_CHANNEL	LITERAL1
+FM	LITERAL1
+CFO	LITERAL1
+
+SINE	LITERAL1
+SQUARE	LITERAL1
+PULSE	LITERAL1
+TRIANGLE	LITERAL1
+SAW	LITERAL1
+FUZZ	LITERAL1
+DIGI1	LITERAL1
+DIGI2	LITERAL1
+DIGI3	LITERAL1
+DIGI4	LITERAL1
+NOISE	LITERAL1
+DIGI6	LITERAL1
+TAN1	LITERAL1
+TAN2	LITERAL1
+TAN3	LITERAL1
+TAN4	LITERAL1
