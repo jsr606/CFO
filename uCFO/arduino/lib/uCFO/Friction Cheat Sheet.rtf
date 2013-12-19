@@ -31,10 +31,10 @@
 	\cf3 void\cf0  setFM2(uint8_t fm);\
 	\cf3 void\cf0  setFM3(uint8_t fm);\
 \
-	\cf3 void\cf0  setFMOctaves(uint8_t octs);	\cf2 // 1 - 128\cf0 \
-	\cf3 void\cf0  setFM1Octaves(uint8_t octs);\
-	\cf3 void\cf0  setFM2Octaves(uint8_t octs);\
-	\cf3 void\cf0  setFM3Octaves(uint8_t octs);\
+	\cf3 void\cf0  setFMoctaves(uint8_t octs);	\cf2 // 1 - 128\cf0 \
+	\cf3 void\cf0  setFM1octaves(uint8_t octs);\
+	\cf3 void\cf0  setFM2octaves(uint8_t octs);\
+	\cf3 void\cf0  setFM3octaves(uint8_t octs);\
 \
 	\cf3 void\cf0  setFM1Source(uint8_t source);	\cf2 // 0 - 3 where\cf0 \
 	\cf3 void\cf0  setFM2Source(uint8_t source);	\cf2 // 0 is linear, 1 is Osc1\cf0 \
@@ -109,7 +109,7 @@
 \
 	\cf2 // ENVELOPE FUNCTIONS\cf0 \
 	\cf3 void\cf0  enableEnvelope1();\
-	\cf3 void\cf0  disableEnvelope1();\
+	\cf3 void\cf0  disableEnvelope1();	\
 \
 	\cf3 void\cf0  setEnv1Attack(uint8_t att); \cf2 // 0 - 127              \cf0 \
 	\cf3 void\cf0  setEnv1Decay(uint8_t dec); \cf2 // 0 - 127               \cf0 \
