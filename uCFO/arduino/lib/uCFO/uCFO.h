@@ -470,8 +470,8 @@ void synth_isr(void) {
 		
 	Music.amplifier();
 
-	//	Music.monotronFilter();
-	Music.filter();
+//	Music.monotronFilter();
+//	Music.filter();
 
 
 
@@ -554,30 +554,6 @@ void MMusic::synthInterrupt8bitFM ()
 
 void MMusic::synthInterrupt12bitSineFM()
 {
-	/*
-	 dPhase1 = dPhase1 + (period1 - dPhase1) / portamento;
-	 //	modulator1 = (fmAmount1 * fmOctaves1 * (oscil3-32768))>>6;
-	 modulator1 = (fmAmount1 * fmOctaves1 * (*osc1modSource_ptr))>>6;
-	 modulator1 = (modulator1 * (*osc1modShape_ptr))>>16;
-	 modulator1 = (modulator1 * int64_t(dPhase1))>>16;
-	 modulator1 = (modulator1>>((modulator1>>31)&zeroFM));
-	 accumulator1 = accumulator1 + dPhase1 + modulator1;						// accumulator is 32bit
-	 //	fraction1 = accumulator1;
-	 //	fraction1 &= 0x000FFFFF;
-	 //	fraction1 >>= 12;														// fraction is	 8bit
-	 index1 = accumulator1 >> 20;											// index is		12bit
-	 //	fraction1 = accumulator1 - (index1 << 20);								// fraction is	20bit
-	 //	fraction1 >>= 12;														// fraction is   8bit
-	 //	oscil1 = sineTable[index1] * (255 - fraction1);							// oscil is		16bit
-	 //	index1++;
-	 //	oscil1 *= fraction1;													// oscil is now 24bit
-	 //	oscil1 += sineTable[index1] * fraction1; 
-	 //	oscil1 >>= 8;															// oscil is now 16bit
-	 oscil1 = sineTable[index1];
-	 //	oscil1 -= 2048;
-	 //	oscil1 <<= 4;
-	 sample = (oscil1 * gain1);	
-	 */	
 	
 	dPhase1 = dPhase1 + (period1 - dPhase1) / portamento;
 //	modulator1 = (fmAmount1 * fmOctaves1 * (oscil3-32768))>>6;
@@ -930,7 +906,7 @@ void MMusic::init()
 	setFM1(0);
 	setFM2(0);
 	setFM3(0);
-	setFMoctaves(0);
+	setFMoctaves(128);
 	
 	// filter setup
 	setCutoff(4095);
