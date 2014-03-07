@@ -24,7 +24,6 @@
 #ifndef Friction_h // include guard
 #define Friction_h
 
-//#include "spi4teensy3.h"
 
 // Useful bit constants
 #define BIT_8 256
@@ -63,7 +62,7 @@
 // SPI pins
 #define DAC_CS 10  // Digital 10
 
-#define SAMPLE_RATE 48000
+#define SAMPLE_RATE 15000
 #define CPU_FREQ 96 // in MHz
 #define PERIOD_MAX BIT_32
 
@@ -773,12 +772,10 @@ void MMusic::sendSampleToDAC() {
 	dacSPIA0 |= dacSetA; 
 	dacSPIA1 = sample >> 4;
 
-	digitalWriteFast(DAC_CS, LOW);
-    spi4teensy3::send(dacSPIA0);
-    spi4teensy3::send(dacSPIA1);
-//	while(SPI.transfer(dacSPIA0));
-//	while(SPI.transfer(dacSPIA1));
-	digitalWriteFast(DAC_CS, HIGH);
+	digitalWrite(DAC_CS, LOW);
+	while(SPI.transfer(dacSPIA0));
+	while(SPI.transfer(dacSPIA1));
+	digitalWrite(DAC_CS, HIGH);
 
 }
 
@@ -846,10 +843,9 @@ void MMusic::timer_setup()
 
 void MMusic::spi_setup()
 {
-    spi4teensy3::init(0,0,0);
 	pinMode(DAC_CS, OUTPUT);
-    //	SPI.begin();
-//	SPI.setClockDivider(SPI_CLOCK_DIV16);  // T3_Beta7 requires this, no default?	
+	SPI.begin();
+	SPI.setClockDivider(SPI_CLOCK_DIV16);  // T3_Beta7 requires this, no default?	
 }
 
 
@@ -1012,12 +1008,10 @@ void MMusic::filter() {
 	dacSPIB0 |= dacSetB; 
 	dacSPIB1 = c >> 4;
 	
-	digitalWriteFast(DAC_CS, LOW);
-    spi4teensy3::send(dacSPIB0);
-    spi4teensy3::send(dacSPIB1);
-//	while(SPI.transfer(dacSPIB0));
-//	while(SPI.transfer(dacSPIB1));
-	digitalWriteFast(DAC_CS, HIGH);
+	digitalWrite(DAC_CS, LOW);
+	while(SPI.transfer(dacSPIB0));
+	while(SPI.transfer(dacSPIB1));
+	digitalWrite(DAC_CS, HIGH);	
 	
 }
 

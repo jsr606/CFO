@@ -5,6 +5,7 @@
 #define MIDI_CHANNEL 1
 
 #include <SPI.h>
+#include <spi4teensy3.h>
 #include <Haarnet.h>
 
 void setup() {
