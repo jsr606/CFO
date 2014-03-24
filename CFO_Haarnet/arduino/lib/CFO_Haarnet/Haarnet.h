@@ -25,6 +25,7 @@
 #define Friction_h
 
 //#include "spi4teensy3.h"
+#include "MCP4251.h"
 
 // Useful bit constants
 #define BIT_8 256
@@ -61,6 +62,7 @@
 #define NOTCH 3
 
 // SPI pins
+#define MCP4251_CS 9 // Digital 9
 #define DAC_CS 10  // Digital 10
 
 #define SAMPLE_RATE 48000
@@ -106,8 +108,8 @@
 #define CUTOFF 4
 #define ZERO_HZ_FM 5
 #define FM_OCTAVES 6
-#define AMP_ENV 7
-#define PORTAMENTO 8	// not implemented yet
+#define RESONANCE 7
+#define PORTAMENTO 8
 #define FILTER_TYPE 9
 
 #define FREQUENCY1 10
@@ -143,18 +145,43 @@
 #define FM3_SHAPE 38
 #define LFO3 39
 
+#define CUTOFF_MOD_AMOUNT 70
+#define CUTOFF_MOD_DIRECTION 71
+#define CUTOFF_SOURCE 72
+#define CUTOFF_SHAPE 73
+#define RESONANCE_MOD_AMOUNT 74
+#define RESONANCE_MOD_DIRECTION 75
+#define RESONANCE_SOURCE 76
+#define RESONANCE_SHAPE 77
+
+#define ENV0_VELOCITY 102
+#define ENV0_ENABLE 103
+#define ENV0_ATTACK 104
+#define ENV0_DECAY 105
+#define ENV0_SUSTAIN 106
+#define ENV0_RELEASE 107
+
+#define ENV1_VELOCITY 112
 #define ENV1_ENABLE 113
 #define ENV1_ATTACK 114
 #define ENV1_DECAY 115
 #define ENV1_SUSTAIN 116
 #define ENV1_RELEASE 117
 
+#define ENV2_VELOCITY 122
 #define ENV2_ENABLE 123
 #define ENV2_ATTACK 124
 #define ENV2_DECAY 125
 #define ENV2_SUSTAIN 126
 #define ENV2_RELEASE 127
 
+#define MOD_FULL 0
+#define MOD_ENV1 1
+#define MOD_ENV2 2
+//#define MOD_ENV0 9
+#define MOD_OSC1 3
+#define MOD_OSC2 4
+#define MOD_OSC3 5
 
 const uint16_t sineTable[] = { 
 #include <FrictionSineTable16bitHex.inc>
@@ -205,12 +232,20 @@ public:
 	void amplifier();
 	void sendToDAC(); // sending both sound and cutoff
 	void sendSampleToDAC(); // sending only sound
+    void output2T3DAC();    // sending sample to Teensy3.1 DAC on pin 14
 	
 	// FILTER FUNCTIONS
 	void filter();
 	void setCutoff(int32_t c);
-	void setResonance(int32_t res);
+	void setResonance(uint8_t res);
+//	void setResonance(int32_t res);
     void setFilterType(uint8_t type);
+	void setCutoffModAmount(int32_t amount);
+	void setCutoffModDirection(int32_t direction);
+	void setCutoffModSource(uint8_t source);
+	void setResonanceModSource(uint8_t source);
+	void setCutoffModShape(uint8_t shape);
+	void setResonanceModShape(uint8_t shape);
 	
 	// MONOTRON FILTER MOD
 	void monotronFilter();
@@ -376,6 +411,12 @@ private:
 	// FILTER VARIABLES
 	int32_t cutoff;
 	int32_t resonance;
+	int32_t cutoffModAmount;
+	int32_t cutoffModDirection;
+	int32_t *cutoffModSource_ptr;
+	int32_t *resonanceModSource_ptr;
+	int32_t *cutoffModShape_ptr;
+	int32_t *resonanceModShape_ptr;
 	
 	// ENVELOPE VARIABLES
 	bool envelopeOn1;
@@ -422,7 +463,7 @@ extern MMusic Music;
 
 IntervalTimer synthTimer;
 
-
+MCP4251 Mcp4251 = MCP4251( MCP4251_CS, 100000.0 ); 
 
 
 #ifdef MIDI
@@ -470,7 +511,8 @@ extern MMidi Midi;
 
 void synth_isr(void) {
 	
-	Music.sendSampleToDAC();
+    Music.output2T3DAC();
+//	Music.sendSampleToDAC();
 //	Music.sendToDAC();
 	
 	Music.envelope1();
@@ -548,7 +590,7 @@ void MMusic::synthInterrupt8bitFM ()
 	sample += (oscil3 * gain3);
 	
 	sample >>= 18;
-	sample += 32768;
+//	sample += 32768;
 
 }
 
@@ -564,32 +606,7 @@ void MMusic::synthInterrupt8bitFM ()
 
 
 void MMusic::synthInterrupt12bitSineFM()
-{
-	/*
-	 dPhase1 = dPhase1 + (period1 - dPhase1) / portamento;
-	 //	modulator1 = (fmAmount1 * fmOctaves1 * (oscil3-32768))>>6;
-	 modulator1 = (fmAmount1 * fmOctaves1 * (*osc1modSource_ptr))>>6;
-	 modulator1 = (modulator1 * (*osc1modShape_ptr))>>16;
-	 modulator1 = (modulator1 * int64_t(dPhase1))>>16;
-	 modulator1 = (modulator1>>((modulator1>>31)&zeroFM));
-	 accumulator1 = accumulator1 + dPhase1 + modulator1;						// accumulator is 32bit
-	 //	fraction1 = accumulator1;
-	 //	fraction1 &= 0x000FFFFF;
-	 //	fraction1 >>= 12;														// fraction is	 8bit
-	 index1 = accumulator1 >> 20;											// index is		12bit
-	 //	fraction1 = accumulator1 - (index1 << 20);								// fraction is	20bit
-	 //	fraction1 >>= 12;														// fraction is   8bit
-	 //	oscil1 = sineTable[index1] * (255 - fraction1);							// oscil is		16bit
-	 //	index1++;
-	 //	oscil1 *= fraction1;													// oscil is now 24bit
-	 //	oscil1 += sineTable[index1] * fraction1; 
-	 //	oscil1 >>= 8;															// oscil is now 16bit
-	 oscil1 = sineTable[index1];
-	 //	oscil1 -= 2048;
-	 //	oscil1 <<= 4;
-	 sample = (oscil1 * gain1);	
-	 */	
-	
+{	
 	dPhase1 = dPhase1 + (period1 - dPhase1) / portamento;
 //	modulator1 = (fmAmount1 * fmOctaves1 * (oscil3-32768))>>6;
 	modulator1 = (fmAmount1 * fmOctaves1 * (*osc1modSource_ptr))>>10;
@@ -636,7 +653,7 @@ void MMusic::synthInterrupt12bitSineFM()
 	sample += (oscil3 * gain3);
 	
 	sample >>= 18;
-	sample += 32768;
+//	sample += 32768;
  	
 }
 
@@ -754,6 +771,20 @@ void MMusic::envelope2() {
 void MMusic::amplifier() {
 	
 	sample = (env1 * sample) >> 16;
+/*	
+	dacSPIB0 = env1 >> 8;
+	dacSPIB0 >>= 4;
+	dacSPIB0 |= dacSetB; 
+	dacSPIB1 = env1 >> 4;
+	
+	digitalWriteFast(DAC_CS, LOW);
+    spi4teensy3::send(dacSPIB0);
+    spi4teensy3::send(dacSPIB1);
+    
+	//	while(SPI.transfer(dacSPIB0));
+	//	while(SPI.transfer(dacSPIB1));
+	digitalWriteFast(DAC_CS, HIGH);
+*/	
 
 }
 
@@ -766,7 +797,9 @@ void MMusic::amplifier() {
 
 
 void MMusic::sendSampleToDAC() {
-	
+
+	sample += 32768;
+
 	// Formatting the samples to be transfered to the MCP4921 DAC to output A
 	dacSPIA0 = sample >> 8;
 	dacSPIA0 >>= 4;
@@ -776,40 +809,17 @@ void MMusic::sendSampleToDAC() {
 	digitalWriteFast(DAC_CS, LOW);
     spi4teensy3::send(dacSPIA0);
     spi4teensy3::send(dacSPIA1);
+    
 //	while(SPI.transfer(dacSPIA0));
 //	while(SPI.transfer(dacSPIA1));
 	digitalWriteFast(DAC_CS, HIGH);
 
 }
 
-
-void MMusic::sendToDAC() {
-	
-	// Formatting the samples to be transfered to the MCP4822 DAC to output A
-	dacSPIA0 = sample >> 8;
-	dacSPIA0 >>= 4;
-	dacSPIA0 |= dacSetA; 
-	dacSPIA1 = sample >> 4;
-	
-	digitalWrite(DAC_CS, LOW);
-	while(SPI.transfer(dacSPIA0));
-	while(SPI.transfer(dacSPIA1));
-	digitalWrite(DAC_CS, HIGH);
-
-	// Formatting the samples to be transfered to the MCP4822 DAC to output B
-	dacSPIB0 = cutoff >> 8;
-	dacSPIB0 >>= 4;
-	dacSPIB0 |= dacSetB; 
-	dacSPIB1 = cutoff >> 4;
-	
-	digitalWrite(DAC_CS, LOW);
-	while(SPI.transfer(dacSPIB0));
-	while(SPI.transfer(dacSPIB1));
-	digitalWrite(DAC_CS, HIGH);
-	
-	
+void MMusic::output2T3DAC() {
+	sample += 32768;
+    analogWrite(A14, sample>>4);
 }
-
 
 
 MMusic Music;
@@ -873,15 +883,16 @@ void MMusic::init()
 	invertSignal = -65535;
 	noSignal = 0;
 	
-	osc1modSource_ptr = &oscil2;
-	osc2modSource_ptr = &oscil3;
-	osc3modSource_ptr = &env1;
-	amp_modSource_ptr = &env1;
-	osc1modShape_ptr = &env2;
+	osc1modSource_ptr = &oscil3;
+	osc2modSource_ptr = &oscil1;
+	osc3modSource_ptr = &oscil2;
+	osc1modShape_ptr = &fullSignal;
 	osc2modShape_ptr = &fullSignal;
 	osc3modShape_ptr = &fullSignal;
-	amp_modShape_ptr = &fullSignal;
 
+	amp_modSource_ptr = &env1;
+	amp_modShape_ptr = &fullSignal;
+	
 	setFM1Source(3);
 	setFM2Source(1);
 	setFM3Source(2);
@@ -941,26 +952,38 @@ void MMusic::init()
 	setEnv2Release(64);
 	setEnv2VelSustain(0);
 	
-	
-	
 	//FM setup
 	setFM1(0);
 	setFM2(0);
 	setFM3(0);
 	setFMoctaves(0);
-	
-	// filter setup
-	setCutoff(4095);
-	setResonance(0);
-    setFilterType(0);
 		
 	// DAC setup
 	dacSetA = 0;
 	dacSetB = 0;
-	dacSetA |= (DAC_B << DAC_AB) | (0 << DAC_BUF) | (1 << DAC_GA) | (1 << DAC_SHDN);
-	dacSetB |= (DAC_A << DAC_AB) | (0 << DAC_BUF) | (1 << DAC_GA) | (1 << DAC_SHDN);
+	dacSetA |= (DAC_A << DAC_AB) | (0 << DAC_BUF) | (1 << DAC_GA) | (1 << DAC_SHDN);
+	dacSetB |= (DAC_B << DAC_AB) | (0 << DAC_BUF) | (1 << DAC_GA) | (1 << DAC_SHDN);
+    
+    analogWriteResolution(12);
 	
 	spi_setup();
+
+	// filter setup
+	setCutoff(4095);
+	setResonance(127);
+    setFilterType(0);
+	
+	cutoffModSource_ptr = &env2;
+	resonanceModSource_ptr = &fullSignal;
+	cutoffModShape_ptr = &fullSignal;
+	resonanceModShape_ptr = &fullSignal;
+
+	setCutoffModSource(2);
+//	cutoffModSource_ptr = &fullSignal;
+//	setCutoffModShape(0);
+	setCutoffModAmount(BIT_16);
+	setCutoffModDirection(1);
+	
 	cli();
 	// set PWM for pin that goes to the monotron's cutoff
 //	analogWriteFrequency(CUTOFF_PIN, 44100);
@@ -986,11 +1009,23 @@ void MMusic::setCutoff(int32_t c)
 }
 
 
-void MMusic::setResonance(int32_t res)
+void MMusic::setResonance(uint8_t res)
 {
 	resonance = res;
 }
 
+
+void MMusic::setCutoffModAmount(int32_t amount) {
+	if(amount >= 65536) cutoffModAmount = 65535;
+	else if(amount < -65536) cutoffModAmount = -65536;
+	else cutoffModAmount = amount;
+//	cutoffModAmount = amount;
+}
+
+void MMusic::setCutoffModDirection(int32_t direction) {
+	if(direction >= 0) cutoffModDirection = 1;
+	else cutoffModDirection = -1;
+}
 
 void MMusic::monotronFilter() {
 	uint32_t cutoffValue = env2 >> 6;
@@ -1002,24 +1037,34 @@ void MMusic::filter() {
 	
 	
 //	uint32_t c = (env2 * ((cutoff + 65536) >> 1)) >> 16;
-	int64_t c = ((((env2 * cutoff) >> 15) + 65536) >> 1);
-
+	//	int64_t mod = (cutoffModAmount * (*cutoffModSource_ptr))>>16;
+	int64_t mod = (int64_t(cutoffModAmount) * (int64_t(*cutoffModSource_ptr)))>>16;
+	int64_t c = (mod + int64_t(cutoff))>>1;
+	if(c > 65535) c = 65535;
+	else if(c < 0) c = 0;
+	c = ((((c * 32768) >> 15) + 65536) >> 1);
+//	c = ((((c * 65535) >> 15) + 65536) >> 1);
+	
 //	uint32_t c = cutoff;
 	
 	// Formatting the samples to be transfered to the MCP4822 DAC to output B
-	dacSPIB0 = uint32_t(c) >> 8;
-	dacSPIB0 >>= 4;
-	dacSPIB0 |= dacSetB; 
-	dacSPIB1 = c >> 4;
+	dacSPIA0 = uint32_t(c) >> 8;
+	dacSPIA0 >>= 4;
+	dacSPIA0 |= dacSetA; 
+	dacSPIA1 = c >> 4;
 	
 	digitalWriteFast(DAC_CS, LOW);
-    spi4teensy3::send(dacSPIB0);
-    spi4teensy3::send(dacSPIB1);
-//	while(SPI.transfer(dacSPIB0));
-//	while(SPI.transfer(dacSPIB1));
+    spi4teensy3::send(dacSPIA0);
+    spi4teensy3::send(dacSPIA1);
+//	while(SPI.transfer(dacSPIA0));
+//	while(SPI.transfer(dacSPIA1));
 	digitalWriteFast(DAC_CS, HIGH);
-	
+
+//	Mcp4251.wiper0_pos(resonance);
+	Mcp4251.wiper1_pos(resonance);
+
 }
+
 
 void MMusic::setFilterType(uint8_t type) {
     
@@ -1039,6 +1084,114 @@ void MMusic::setFilterType(uint8_t type) {
         digitalWrite(MUX_B, HIGH);
         digitalWrite(MUX_A, HIGH);
     }
+}
+
+
+void MMusic::setCutoffModShape(uint8_t shape) {
+	switch(shape) {
+		case 0:
+			cutoffModShape_ptr = &fullSignal;
+			break;
+		case 1:
+			cutoffModShape_ptr = &env1;
+			break;
+		case 2:
+			cutoffModShape_ptr = &env2;
+			break;
+		case 3:
+			cutoffModShape_ptr = &oscil1;
+			break;
+		case 4:
+			cutoffModShape_ptr = &oscil2;
+			break;
+		case 5:
+			cutoffModShape_ptr = &oscil3;
+			break;
+		default:
+			cutoffModShape_ptr = &fullSignal;
+			break;
+	}
+}
+
+
+void MMusic::setCutoffModSource(uint8_t source) {
+	switch(source) {
+		case 0:
+			cutoffModSource_ptr = &fullSignal;
+			break;
+		case 1:
+			cutoffModSource_ptr = &env1;
+			break;
+		case 2:
+			cutoffModSource_ptr = &env2;
+			break;
+		case 3:
+			cutoffModSource_ptr = &oscil1;
+			break;
+		case 4:
+			cutoffModSource_ptr = &oscil2;
+			break;
+		case 5:
+			cutoffModSource_ptr = &oscil3;
+			break;
+		default:
+			cutoffModSource_ptr = &fullSignal;
+			break;
+	}
+}
+
+
+void MMusic::setResonanceModShape(uint8_t shape) {
+	switch(shape) {
+		case 0:
+			resonanceModShape_ptr = &fullSignal;
+			break;
+		case 1:
+			resonanceModShape_ptr = &env1;
+			break;
+		case 2:
+			resonanceModShape_ptr = &env2;
+			break;
+		case 3:
+			resonanceModShape_ptr = &oscil1;
+			break;
+		case 4:
+			resonanceModShape_ptr = &oscil2;
+			break;
+		case 5:
+			resonanceModShape_ptr = &oscil3;
+			break;
+		default:
+			resonanceModShape_ptr = &fullSignal;
+			break;
+	}
+}
+
+
+void MMusic::setResonanceModSource(uint8_t source) {
+	switch(source) {
+		case 0:
+			resonanceModSource_ptr = &fullSignal;
+			break;
+		case 1:
+			resonanceModSource_ptr = &env1;
+			break;
+		case 2:
+			resonanceModSource_ptr = &env2;
+			break;
+		case 3:
+			resonanceModSource_ptr = &oscil1;
+			break;
+		case 4:
+			resonanceModSource_ptr = &oscil2;
+			break;
+		case 5:
+			resonanceModSource_ptr = &oscil3;
+			break;
+		default:
+			resonanceModSource_ptr = &fullSignal;
+			break;
+	}
 }
 
 
@@ -1307,6 +1460,15 @@ void MMusic::setFM1Shape(uint8_t shape) {
 		case 2:
 			osc1modShape_ptr = &env2;
 			break;
+		case 3:
+			osc1modShape_ptr = &oscil1;
+			break;
+		case 4:
+			osc1modShape_ptr = &oscil2;
+			break;
+		case 5:
+			osc1modShape_ptr = &oscil3;
+			break;
 		default:
 			osc1modShape_ptr = &fullSignal;
 			break;
@@ -1325,6 +1487,15 @@ void MMusic::setFM2Shape(uint8_t shape) {
 		case 2:
 			osc2modShape_ptr = &env2;
 			break;
+		case 3:
+			osc2modShape_ptr = &oscil1;
+			break;
+		case 4:
+			osc2modShape_ptr = &oscil2;
+			break;
+		case 5:
+			osc2modShape_ptr = &oscil3;
+			break;
 		default:
 			osc2modShape_ptr = &fullSignal;
 			break;
@@ -1342,6 +1513,15 @@ void MMusic::setFM3Shape(uint8_t shape) {
 			break;
 		case 2:
 			osc3modShape_ptr = &env2;
+			break;
+		case 3:
+			osc3modShape_ptr = &oscil1;
+			break;
+		case 4:
+			osc3modShape_ptr = &oscil2;
+			break;
+		case 5:
+			osc3modShape_ptr = &oscil3;
 			break;
 		default:
 			osc3modShape_ptr = &fullSignal;
@@ -1776,11 +1956,28 @@ void inline MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			Music.setPortamento(portamentoTimeTable[value]);
 			break;
 		case CUTOFF:
-			Music.setCutoff(value * 256);
+			Music.setCutoff(value * 512);
+			break;			
+		case RESONANCE:
+			Music.setResonance(value * 2);
 			break;			
 		case FILTER_TYPE:
 			Music.setFilterType(value/32);
 			break;
+		case CUTOFF_MOD_AMOUNT:
+			Music.setCutoffModAmount((value-64) * 1024);
+//			if(value > 63) Music.setCutoffModAmount((value-64) * 512);
+//			if(value < 64) Music.setCutoffModAmount(() * 512);
+			break;
+//		case CUTOFF_MOD_DIRECTION:
+//			Music.setCutoffModDirection(value);
+//			break;			
+		case CUTOFF_SOURCE:
+			Music.setCutoffModSource(value);
+			break;			
+		case CUTOFF_SHAPE:
+			Music.setCutoffModShape(value);
+			break;			
 		case ZERO_HZ_FM:
 			if(value < 64) Music.fmToZeroHertz(false);
 			else Music.fmToZeroHertz(true);
@@ -1889,22 +2086,22 @@ void inline MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			Music.setFM3octaves(value+1);
 			break;
 		case FM1_SOURCE:
-			Music.setFM1Source(value/32);
+			Music.setFM1Source(value);
 			break;
 		case FM2_SOURCE:
-			Music.setFM2Source(value/32);
+			Music.setFM2Source(value);
 			break;
 		case FM3_SOURCE:
-			Music.setFM3Source(value/32);
+			Music.setFM3Source(value);
 			break;
 		case FM1_SHAPE:
-			Music.setFM1Shape(value/32);
+			Music.setFM1Shape(value);
 			break;
 		case FM2_SHAPE:
-			Music.setFM2Shape(value/32);
+			Music.setFM2Shape(value);
 			break;
 		case FM3_SHAPE:
-			Music.setFM3Shape(value/32);
+			Music.setFM3Shape(value);
 			break;
 		case ENV1_ENABLE:
 			if(value<64) Music.enableEnvelope1();
