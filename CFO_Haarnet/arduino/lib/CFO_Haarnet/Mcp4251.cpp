@@ -6,8 +6,6 @@
 // interrupt disabled,spi enabled,msb 1st,master,clk low when idle,
 // sample on leading edge of clk,system clock/4 rate (fastest).
 // Enable the digital pins 11-13 for SPI (the MOSI,MISO,SPICLK)
-#include <Spi.h>
-#include <spi4teensy3.h>
 #include <Mcp4251.h>
 
 //---------- constructor ----------------------------------------------------

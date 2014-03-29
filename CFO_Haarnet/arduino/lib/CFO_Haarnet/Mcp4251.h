@@ -2,6 +2,9 @@
 // MCP4251 2-channel Digital Potentiometer
 // ww1.microchip.com/downloads/en/DeviceDoc/22059b.pdf
 
+#include <Arduino.h>
+#include <spi4teensy3.h>
+
 #ifndef Mcp4251_h
 #define Mcp4251_h
 
