@@ -44,6 +44,9 @@ const float hertzTable[] = {
 #include <FrictionHertzTable.inc>	
 };
 
+uint8_t sequencer[4][32];
+uint8_t preset[16][128];
+
 // Used in the functions that set the envelope timing
 const uint32_t envTimeTable[] = {1,5,9,14,19,26,34,42,53,65,79,95,113,134,157,182,211,243,278,317,359,405,456,511,570,633,702,776,854,939,1029,1124,1226,1333,1448,1568,1695,1829,1971,2119,2274,2438,2610,2789,2977,3172,3377,3590,3813,4044,4285,4535,4795,5065,5345,5635,5936,6247,6569,6902,7247,7602,7970,8349,8740,9143,9559,9986,10427,10880,11347,11827,12321,12828,13349,13883,14433,14996,15574,16167,16775,17398,18036,18690,19359,20045,20746,21464,22198,22949,23716,24501,25303,26122,26959,27813,28686,29577,30486,31413,32359,33325,34309,35312,36335,37378,38440,39522,40625,41748,42892,44056,45241,46448,47675,48925,50196,51489,52803,54141,55500,56883,58288,59716,61167,62642,64140,65662};
 
@@ -61,8 +64,6 @@ const extern uint32_t portamentoTimeTable[] = {1,5,9,13,17,21,26,30,35,39,44,49,
 void synth_isr(void) {
 	
     Music.output2T3DAC();
-//	Music.sendSampleToDAC();
-//	Music.sendToDAC();
 	
 	Music.envelope1();
 	Music.envelope2();
@@ -72,10 +73,7 @@ void synth_isr(void) {
 		
 	Music.amplifier();
 
-	//	Music.monotronFilter();
 	Music.filter();
-
-
 
 }
 
@@ -99,9 +97,7 @@ void MMusic::synthInterrupt8bitFM ()
 {
 	
 	dPhase1 = dPhase1 + (period1 - dPhase1) / portamento;
-//	modulator1 = (fmAmount1 * fmOctaves1 * (oscil3-15384))>>5;
 	modulator1 = (fmAmount1 * fmOctaves1 * (*osc1modSource_ptr))>>10;
-//	modulator1 = (fmAmount1 * (*osc1modSource_ptr))>>10;
 	modulator1 = (modulator1 * (*osc1modShape_ptr))>>16;
 	modulator1 = (modulator1 * int64_t(dPhase1))>>16;
 	modulator1 = (modulator1>>((modulator1>>31)&zeroFM));
@@ -114,7 +110,6 @@ void MMusic::synthInterrupt8bitFM ()
 	
 	dPhase2 = dPhase2 + (period2 - dPhase2) / portamento;
 	modulator2 = (fmAmount2 * fmOctaves2 * (*osc2modSource_ptr))>>10;
-//	modulator2 = (fmAmount2 * (*osc2modSource_ptr))>>10;
 	modulator2 = (modulator2 * (*osc2modShape_ptr))>>16;
 	modulator2 = (modulator2 * int64_t(dPhase2))>>16;
 	modulator2 = (modulator2>>((modulator2>>31)&zeroFM));
@@ -127,7 +122,6 @@ void MMusic::synthInterrupt8bitFM ()
 
 	dPhase3 = dPhase3 + (period3 - dPhase3) / portamento;
 	modulator3 = (fmAmount3 * fmOctaves3 * (*osc3modSource_ptr))>>10;
-//	modulator3 = (fmAmount3 * (*osc3modSource_ptr))>>10;
 	modulator3 = (modulator3 * (*osc3modShape_ptr))>>16;
 	modulator3 = (modulator3 * int64_t(dPhase3))>>16;
 	modulator3 = (modulator3>>((modulator3>>31)&zeroFM));
@@ -139,7 +133,6 @@ void MMusic::synthInterrupt8bitFM ()
 	sample += (oscil3 * gain3);
 	
 	sample >>= 18;
-//	sample += 32768;
 
 }
 
@@ -155,54 +148,42 @@ void MMusic::synthInterrupt8bitFM ()
 
 
 void MMusic::synthInterrupt12bitSineFM()
-{	
+{
+	
 	dPhase1 = dPhase1 + (period1 - dPhase1) / portamento;
-//	modulator1 = (fmAmount1 * fmOctaves1 * (oscil3-32768))>>6;
 	modulator1 = (fmAmount1 * fmOctaves1 * (*osc1modSource_ptr))>>10;
-//	modulator1 = (fmAmount1 * (*osc1modSource_ptr))>>10;
 	modulator1 = (modulator1 * (*osc1modShape_ptr))>>16;
 	modulator1 = (modulator1 * int64_t(dPhase1))>>16;
 	modulator1 = (modulator1>>((modulator1>>31)&zeroFM));
 	accumulator1 = accumulator1 + dPhase1 + modulator1;
 	index1 = accumulator1 >> 20;
 	oscil1 = sineTable[index1];
-//	oscil1 -= 2048;
 	oscil1 -= 32768;
-//	oscil1 <<= 4;
 	sample = (oscil1 * gain1);
 	
 	dPhase2 = dPhase2 + (period2 - dPhase2) / portamento;
-//	modulator2 = (fmAmount2 * fmOctaves2 * (oscil1-32768))>>6;
 	modulator2 = (fmAmount2 * fmOctaves2 * (*osc2modSource_ptr))>>10;
-//	modulator2 = (fmAmount2 * (*osc2modSource_ptr))>>10;
 	modulator2 = (modulator2 * (*osc2modShape_ptr))>>16;
 	modulator2 = (modulator2 * int64_t(dPhase2))>>16;
 	modulator2 = (modulator2>>((modulator2>>31)&zeroFM));
 	accumulator2 = accumulator2 + dPhase2+ modulator2;
 	index2 = accumulator2 >> 20;
 	oscil2 = sineTable[index2];
-//	oscil2 -= 2048;
 	oscil2 -= 32768;
-//	oscil2 <<= 4;
 	sample += (oscil2 * gain2); 
 	
 	dPhase3 = dPhase3 + (period3 - dPhase3) / portamento;
-//	modulator3 = (fmAmount3 * fmOctaves3 * (oscil2-32768))>>6;
 	modulator3 = (fmAmount3 * fmOctaves3 * (*osc3modSource_ptr))>>10;
-//	modulator3 = (fmAmount3 * (*osc3modSource_ptr))>>10;
 	modulator3 = (modulator3 * (*osc3modShape_ptr))>>16;
 	modulator3 = (modulator3 * int64_t(dPhase3))>>16;
 	modulator3 = (modulator3>>((modulator3>>31)&zeroFM));
 	accumulator3 = accumulator3 + dPhase3 + modulator3;
 	index3 = accumulator3 >> 20;
 	oscil3 = sineTable[index3];
-//	oscil3 -= 2048;
 	oscil3 -= 32768;
-//	oscil3 <<= 4;
 	sample += (oscil3 * gain3);
 	
 	sample >>= 18;
-//	sample += 32768;
  	
 }
 
@@ -340,30 +321,10 @@ void MMusic::amplifier() {
 
 /////////////////////////////////////////////////////////
 //
-//	SEND SAMPLE TO DAC
+//	SEND SAMPLE TO DAC ON TEENSY 3.1 PIN A14
 //
 /////////////////////////////////////////////////////////
 
-
-void MMusic::sendSampleToDAC() {
-
-	sample += 32768;
-
-	// Formatting the samples to be transfered to the MCP4921 DAC to output A
-	dacSPIA0 = sample >> 8;
-	dacSPIA0 >>= 4;
-	dacSPIA0 |= dacSetA; 
-	dacSPIA1 = sample >> 4;
-
-	digitalWriteFast(DAC_CS, LOW);
-    spi4teensy3::send(dacSPIA0);
-    spi4teensy3::send(dacSPIA1);
-    
-//	while(SPI.transfer(dacSPIA0));
-//	while(SPI.transfer(dacSPIA1));
-	digitalWriteFast(DAC_CS, HIGH);
-
-}
 
 void MMusic::output2T3DAC() {
 	sample += 32768;
@@ -379,31 +340,26 @@ void MMusic::output2T3DAC() {
 //
 /////////////////////////////////////
 
-void MMusic::timer_setup()
-{	
-	// Teensy 3.0 version
-	SIM_SCGC6 |= SIM_SCGC6_PIT; // Activates the clock for PIT
-	// Turn on PIT
-	PIT_MCR = 0x00;
-	// Set the period of the timer.  Unit is (1 / 50MHz) = 20ns
-	// So 20 kHz frequency -> 50 µs period -> 2500 * 20ns
-	PIT_LDVAL1 = (CPU_FREQ * 1000000) / SAMPLE_RATE;
-	// Enable interrupts on timer1
-	PIT_TCTRL1 = TIE;
-	// Start the timer
-	PIT_TCTRL1 |= TEN;
-	NVIC_ENABLE_IRQ(IRQ_PIT_CH1); // Another step to enable PIT channel 1 interrupts
-}
-
 
 void MMusic::spi_setup()
 {
     spi4teensy3::init(0,0,0);
 	pinMode(DAC_CS, OUTPUT);
-    //	SPI.begin();
-//	SPI.setClockDivider(SPI_CLOCK_DIV16);  // T3_Beta7 requires this, no default?	
 }
 
+
+void MMusic::getPreset(uint8_t p)
+{
+	for(uint8_t i=0; i<128; i++) {
+		Midi.controller(Midi.midiChannel, i, preset[p][i]);	
+	}
+	
+}
+
+
+void MMusic::savePreset(uint8_t p)
+{
+}
 
 void MMusic::init()
 {
@@ -521,16 +477,10 @@ void MMusic::init()
 	resonanceModShape_ptr = &fullSignal;
 
 	setCutoffModSource(2);
-//	cutoffModSource_ptr = &fullSignal;
-//	setCutoffModShape(0);
 	setCutoffModAmount(BIT_16);
 	setCutoffModDirection(1);
 	
 	cli();
-	// set PWM for pin that goes to the monotron's cutoff
-//	analogWriteFrequency(CUTOFF_PIN, 44100);
-//	analogWriteResolution(10);
-	
 	synthTimer.begin(synth_isr, 1000000.0 / sampleRate);
 	sei();
 	
@@ -569,25 +519,15 @@ void MMusic::setCutoffModDirection(int32_t direction) {
 	else cutoffModDirection = -1;
 }
 
-void MMusic::monotronFilter() {
-	uint32_t cutoffValue = env2 >> 6;
-	analogWrite(CUTOFF_PIN, cutoffValue);
-}
-
 
 void MMusic::filter() {
 	
 	
-//	uint32_t c = (env2 * ((cutoff + 65536) >> 1)) >> 16;
-	//	int64_t mod = (cutoffModAmount * (*cutoffModSource_ptr))>>16;
 	int64_t mod = (int64_t(cutoffModAmount) * (int64_t(*cutoffModSource_ptr)))>>16;
 	int64_t c = (mod + int64_t(cutoff))>>1;
 	if(c > 65535) c = 65535;
 	else if(c < 0) c = 0;
 	c = ((((c * 32768) >> 15) + 65536) >> 1);
-//	c = ((((c * 65535) >> 15) + 65536) >> 1);
-	
-//	uint32_t c = cutoff;
 	
 	// Formatting the samples to be transfered to the MCP4822 DAC to output B
 	dacSPIA0 = uint32_t(c) >> 8;
@@ -598,12 +538,12 @@ void MMusic::filter() {
 	digitalWriteFast(DAC_CS, LOW);
     spi4teensy3::send(dacSPIA0);
     spi4teensy3::send(dacSPIA1);
-//	while(SPI.transfer(dacSPIA0));
-//	while(SPI.transfer(dacSPIA1));
 	digitalWriteFast(DAC_CS, HIGH);
 
+	
+// For later implementation of digital pot for Resonance	
 //	Mcp4251.wiper0_pos(resonance);
-	Mcp4251.wiper1_pos(resonance);
+//	Mcp4251.wiper1_pos(resonance);
 
 }
 
@@ -1389,6 +1329,7 @@ void MMidi::init()
 	if(midiChannel < 0 || midiChannel > 15) midiChannel = 0;
 	
 }
+					
 
 void MMidi::checkMidi()
 {

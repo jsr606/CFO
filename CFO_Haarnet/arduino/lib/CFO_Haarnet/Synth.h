@@ -103,7 +103,18 @@
 #elif (MIDI_CHANNEL > 0)&&(MIDI_CHANNEL < 17)
 #else
 	#error MIDI_CHANNEL should be between 1 - 16
+Midi
 #endif
+
+// parameters for modulation
+#define MOD_FULL 0
+#define MOD_ENV1 1
+#define MOD_ENV2 2
+//#define MOD_ENV0 9
+#define MOD_OSC1 3
+#define MOD_OSC2 4
+#define MOD_OSC3 5
+
 
 //synth parameters as MIDI controller numbers
 #define IS_12_BIT 3
@@ -156,6 +167,16 @@
 #define RESONANCE_SOURCE 76
 #define RESONANCE_SHAPE 77
 
+#define SEQ_WRITE_POSITION 80
+#define SEQ_WRITE_VALUE 81
+#define SEQ_START 82
+#define SEQ_STOP 83
+#define SEQ_PAUSE 84
+#define SEQ_JUMP_POSITION 85
+#define SEQ_BPM 86
+#define SEQ_SYNC 87
+#define SEQ_ON 88
+
 #define ENV0_VELOCITY 102
 #define ENV0_ENABLE 103
 #define ENV0_ATTACK 104
@@ -177,14 +198,6 @@
 #define ENV2_SUSTAIN 126
 #define ENV2_RELEASE 127
 
-#define MOD_FULL 0
-#define MOD_ENV1 1
-#define MOD_ENV2 2
-//#define MOD_ENV0 9
-#define MOD_OSC1 3
-#define MOD_OSC2 4
-#define MOD_OSC3 5
-
 
 // MMusic class for handling sound engine
 
@@ -193,9 +206,9 @@ public:
 	
 	// INITIALIZER
     void init();
+	void getPreset(uint8_t instrument);
+	void savePreset(uint8_t instrument);
 	void spi_setup();
-	void timer_setup();
-	void synthInterrupt();
 	void set12bit(bool b);
 	bool is12bit;
 
@@ -224,9 +237,6 @@ public:
 	void setResonanceModSource(uint8_t source);
 	void setCutoffModShape(uint8_t shape);
 	void setResonanceModShape(uint8_t shape);
-	
-	// MONOTRON FILTER MOD
-	void monotronFilter();
 
 		
 	// FREQUENCY AND DETUNE FUNCTIONS
@@ -247,7 +257,7 @@ public:
 	void setFM1(uint8_t fm);
 	void setFM2(uint8_t fm);
 	void setFM3(uint8_t fm);
-	void setFMoctaves(uint8_t octs);
+	void setFMoctaves(uint8_t octs);	// THIS SHOULD PROBABLY BE CALLED SOMETHING ELSE
 	void setFM1octaves(uint8_t octs);
 	void setFM2octaves(uint8_t octs);
 	void setFM3octaves(uint8_t octs);
@@ -257,7 +267,7 @@ public:
 	void setFM1Shape(uint8_t shape);
 	void setFM2Shape(uint8_t shape);
 	void setFM3Shape(uint8_t shape);
-	void fmToZeroHertz(bool);
+	void fmToZeroHertz(bool);			// THIS SHOULD PROBABLY BE CALLED SOMETHING ELSE
 	void pitchBend(float b); // NOT IMPLEMENTED
 	void setPortamento(int32_t port);
 	
@@ -356,9 +366,6 @@ private:
 	int32_t oscil1;
 	int32_t oscil2;
 	int32_t oscil3;
-//	uint32_t oscilLast1;
-//	uint32_t oscilLast2;
-//	uint32_t oscilLast3;
 	int64_t modulator1;
 	int64_t modulator2;
 	int64_t modulator3;
@@ -424,10 +431,7 @@ private:
 	// final sample that goes to the DAC    
 	int64_t sample;
 	
-	// the two bytes that go to the DAC over SPI
-	volatile uint8_t dacSPI0;
-	volatile uint8_t dacSPI1;
-	// the two bytes that go to the DAC over SPI for stereo -  NOT IMPLEMENTED
+	// the two bytes that go to the DAC over SPI for VCF and VCA
 	volatile uint8_t dacSPIA0;
 	volatile uint8_t dacSPIA1;
 	volatile uint8_t dacSPIB0;
@@ -457,13 +461,14 @@ public:
 	void channelPressure(uint8_t channel, uint8_t pressure);
 	void pitchWheel(uint8_t channel, uint8_t highBits, uint8_t lowBits);
 	void pitchChange(uint8_t channel, int pitch); // extra pitchWheel function for USB MIDI interfacing
-	
+
+	uint8_t midiChannel;
+
 private:
 	
 	// MIDI
 	uint8_t data;
 	uint8_t midiBuffer[3];
-	uint8_t midiChannel;
 	
 	int midiBufferIndex;
 	uint16_t frequency;
