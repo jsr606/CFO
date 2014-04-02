@@ -104,7 +104,6 @@
 #elif (MIDI_CHANNEL > 0)&&(MIDI_CHANNEL < 17)
 #else
 	#error MIDI_CHANNEL should be between 1 - 16
-Midi
 #endif
 
 // parameters for modulation
@@ -220,6 +219,7 @@ public:
 	// PRESETS
 	void getPreset(uint8_t p);
 	void savePreset(uint8_t p);
+	void sendPreset(uint8_t p);
 	void loadAllPresets();
 
 	// AUDIO INTERRUPT SERVICE ROUTINE

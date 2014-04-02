@@ -1,7 +1,7 @@
 // The Music object is automatically instantiated when the header file is
 // included. Make calls to the Music objects with "Music.function(args)".
 // You still need to call Music.init() in the setup() function below.
-#define MIDI
+//#define MIDI
 #define MIDI_CHANNEL 1
 
 #include <spi4teensy3.h>

@@ -354,28 +354,43 @@ void MMusic::getPreset(uint8_t p)
 {
 //	cli();
 	if(p < MAX_PRESETS) {
-		Serial.print("GETTING PRESET NUMBER : ");
-		Serial.println(p);
+//		Serial.print("GETTING PRESET NUMBER : ");
+//		Serial.println(p);
 		for(uint8_t i=2; i<128; i++) {
-			Midi.controller(Midi.midiChannel, i, preset[p][i]);
-//			Serial.println(preset[p][i]);
 			instrument[i] = preset[p][i];
-			usbMIDI.sendControlChange(i, instrument[i], Midi.midiChannel);
+			Midi.controller(Midi.midiChannel, i, instrument[i]);
+//			Serial.println(preset[p][i]);
 		}
 	}
 //	sei();
 }
 
 
+void MMusic::sendPreset(uint8_t p)
+{
+	if(p < MAX_PRESETS) {
+//		Serial.print("SENDING PRESET NUMBER : ");
+//		Serial.print(p);
+//		Serial.println(" OVER MIDI");
+		cli();
+		for(uint8_t i=2; i<128; i++) {
+			usbMIDI.sendControlChange(i, instrument[i], MIDI_CHANNEL);
+//			delay(50);
+		}
+		sei();
+	}
+}
+
+
 void MMusic::savePreset(uint8_t p)
 {
 	if(p < MAX_PRESETS) {
-		Serial.print("SAVING PRESET NUMBER : ");
-		Serial.println(p);
+//		Serial.print("SAVING PRESET NUMBER : ");
+//		Serial.println(p);
 		for(uint8_t i=0; i<128; i++) {
 //			Serial.print(i);
 //			Serial.print(" : ");
-//			preset[p][i] = instrument[i];
+			preset[p][i] = instrument[i];
 //			Serial.println(preset[p][i]);
 			//insert code for saving instrument sequence here
 			// save to EEPROM
@@ -400,6 +415,8 @@ void MMusic::init()
 {
     pinMode(MUX_A, OUTPUT);
     pinMode(MUX_B, OUTPUT);
+	
+	Midi.midiChannel = MIDI_CHANNEL - 1;
 	
 	for(uint8_t i=0; i<128; i++) {
 		instrument[i] = 0;
@@ -1480,7 +1497,9 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 	
 	switch(number) {
 		case IS_12_BIT:
-			Music.set12bit(value/64);
+			if(value) Music.set12bit(true);
+			else Music.set12bit(false);
+//			Music.set12bit(value/64);
 			break;
 		case PORTAMENTO:
 			Music.setPortamento(portamentoTimeTable[value]);
@@ -1492,7 +1511,7 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			Music.setResonance(value * 2);
 			break;			
 		case FILTER_TYPE:
-			Music.setFilterType(value/32);
+			Music.setFilterType(value);
 			break;
 		case CUTOFF_MOD_AMOUNT:
 			Music.setCutoffModAmount((value-64) * 1024);
@@ -1509,8 +1528,8 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			Music.setCutoffModShape(value);
 			break;			
 		case ZERO_HZ_FM:
-			if(value < 64) Music.fmToZeroHertz(false);
-			else Music.fmToZeroHertz(true);
+			if(value) Music.fmToZeroHertz(true);
+			else Music.fmToZeroHertz(false);
 			break;
 		case FM_OCTAVES:
 			Music.setFMoctaves(value+1);
@@ -1559,30 +1578,51 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			//Music.setDetune3(value/5120.0);
 			break;
 		case SEMITONE1:
-			if(15 < value && value < 113) {
-				int8_t val = (((value-16)/2)-24);
-				Music.setSemitone1(val);
-			} else if (value < 16) {
+//			if(15 < value && value < 113) {
+//				int8_t val = (((value-16)/2)-24);
+//				Music.setSemitone1(val);
+//			} else if (value < 16) {
+//				Music.setSemitone1(-24);				
+//			} else {
+//				Music.setSemitone1(24);
+//			}
+			if(40 <= value && value <= 88) {
+				Music.setSemitone1(value-64);
+			} else if (value < 40) {
 				Music.setSemitone1(-24);				
 			} else {
 				Music.setSemitone1(24);
 			}
 			break;
 		case SEMITONE2:
-			if(15 < value && value < 113) {
-				int8_t val = (((value-16)/2)-24);
-				Music.setSemitone2(val);
-			} else if (value < 16) {
+//			if(15 < value && value < 113) {
+//				int8_t val = (((value-16)/2)-24);
+//				Music.setSemitone2(val);
+//			} else if (value < 16) {
+//				Music.setSemitone2(-24);				
+//			} else {
+//				Music.setSemitone2(24);
+//			}
+			if(40 <= value && value <= 88) {
+				Music.setSemitone2(value-64);
+			} else if (value < 40) {
 				Music.setSemitone2(-24);				
 			} else {
 				Music.setSemitone2(24);
 			}
 			break;
 		case SEMITONE3:
-			if(15 < value && value < 113) {
-				int8_t val = (((value-16)/2)-24);
-				Music.setSemitone3(val);
-			} else if (value < 16) {
+//			if(15 < value && value < 113) {
+//				int8_t val = (((value-16)/2)-24);
+//				Music.setSemitone3(val);
+//			} else if (value < 16) {
+//				Music.setSemitone3(-24);				
+//			} else {
+//				Music.setSemitone3(24);
+//			}
+			if(40 <= value && value <= 88) {
+				Music.setSemitone3(value-64);
+			} else if (value < 40) {
 				Music.setSemitone3(-24);				
 			} else {
 				Music.setSemitone3(24);
@@ -1598,13 +1638,13 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			Music.setGain3(value / 127.0);
 			break;
 		case WAVEFORM1:
-			Music.setWaveform1(value / 8);
+			Music.setWaveform1(value);
 			break;
 		case WAVEFORM2:
-			Music.setWaveform2(value / 8);
+			Music.setWaveform2(value);
 			break;
 		case WAVEFORM3:
-			Music.setWaveform3(value / 8);
+			Music.setWaveform3(value);
 			break;
 		case FM1:
 			Music.setFM1(value);
@@ -1679,6 +1719,7 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			break;
 		case PRESET_RECALL:
 			Music.getPreset(value);
+			Music.sendPreset(value);
 			break;
 		default:
 			break;
