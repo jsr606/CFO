@@ -116,8 +116,8 @@
 #define MOD_OSC3 5
 
 // parameters for presets || the two parameters below should multiply to 2048.
-#define MAX_PRESETS 8
-#define PRESET_SIZE 256
+#define MAX_PRESETS 16
+#define PRESET_SIZE 128
 
 //synth functions and parameters as MIDI controller numbers
 #define PRESET_SAVE 0
@@ -219,7 +219,7 @@ public:
 	// PRESETS
 	void getPreset(uint8_t p);
 	void savePreset(uint8_t p);
-	void sendPreset(uint8_t p);
+	void sendInstrument();
 	void loadAllPresets();
 
 	// AUDIO INTERRUPT SERVICE ROUTINE

@@ -46,7 +46,12 @@ const float hertzTable[] = {
 
 uint8_t sequencer[128];
 uint8_t instrument[128];
-uint8_t preset[MAX_PRESETS][256];
+uint8_t userPresets[MAX_PRESETS][PRESET_SIZE];
+
+
+const uint8_t programPresets[] = {
+#include <HaarnetPresets.h>
+};
 
 
 // Used in the functions that set the envelope timing
@@ -357,48 +362,60 @@ void MMusic::getPreset(uint8_t p)
 //		Serial.print("GETTING PRESET NUMBER : ");
 //		Serial.println(p);
 		for(uint8_t i=2; i<128; i++) {
-			instrument[i] = preset[p][i];
+			instrument[i] = userPresets[p][i];
 			Midi.controller(Midi.midiChannel, i, instrument[i]);
-//			Serial.println(preset[p][i]);
+//			Serial.println(userPresets[p][i]);
 		}
+	} else {
+		for(uint8_t i=2; i<128; i++) {
+			instrument[i] = programPresets[(p-MAX_PRESETS)*PRESET_SIZE + i];
+			Midi.controller(Midi.midiChannel, i, instrument[i]);
+			//			Serial.println(userPresets[p][i]);
+		}
+		
 	}
+
 //	sei();
 }
 
 
-void MMusic::sendPreset(uint8_t p)
+void MMusic::sendInstrument()
 {
-	if(p < MAX_PRESETS) {
-//		Serial.print("SENDING PRESET NUMBER : ");
-//		Serial.print(p);
-//		Serial.println(" OVER MIDI");
-		cli();
-		for(uint8_t i=2; i<128; i++) {
-			usbMIDI.sendControlChange(i, instrument[i], MIDI_CHANNEL);
-//			delay(50);
-		}
-		sei();
+//	Serial.print("SENDING PRESET NUMBER : ");
+//	Serial.print(p);
+//	Serial.println(" OVER MIDI");
+	cli();
+	for(uint8_t i=2; i<128; i++) {
+		usbMIDI.sendControlChange(i, instrument[i], MIDI_CHANNEL);
 	}
+	sei();
 }
 
 
 void MMusic::savePreset(uint8_t p)
 {
 	if(p < MAX_PRESETS) {
-//		Serial.print("SAVING PRESET NUMBER : ");
-//		Serial.println(p);
+		Serial.print("SAVING PRESET NUMBER : ");
+		Serial.println(p);
 		for(uint8_t i=0; i<128; i++) {
-//			Serial.print(i);
-//			Serial.print(" : ");
-			preset[p][i] = instrument[i];
-//			Serial.println(preset[p][i]);
+			Serial.print(i);
+			Serial.print(" : ");
+			userPresets[p][i] = instrument[i];
+			Serial.println(userPresets[p][i]);
 			//insert code for saving instrument sequence here
-			// save to EEPROM
 			cli();
 			EEPROM.write(p * PRESET_SIZE + i, instrument[i]);
 			sei();
 		}
 	}
+	else {
+		Serial.println("CAN NOT SAVE PRESET TO EEPROM - COPY/PASTE BELOW TO FILE");
+		for(uint8_t i=0; i<128; i++) {
+			Serial.print(instrument[i]);
+			Serial.print(", ");
+		}
+	}
+
 }
 
 
@@ -406,7 +423,7 @@ void MMusic::loadAllPresets()
 {
 	for(uint8_t i=2; i<128; i++) {
 		for(uint8_t p=0; p<MAX_PRESETS;p++) {
-			preset[p][i] = EEPROM.read(p * PRESET_SIZE + i);
+			userPresets[p][i] = EEPROM.read(p * PRESET_SIZE + i);
 		}		
 	}
 }
@@ -421,7 +438,7 @@ void MMusic::init()
 	for(uint8_t i=0; i<128; i++) {
 		instrument[i] = 0;
 		for(uint8_t p=0; p<MAX_PRESETS;p++) {
-			preset[p][i] = 0;
+			userPresets[p][i] = 0;
 		}
 	}
 	
@@ -1719,7 +1736,7 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			break;
 		case PRESET_RECALL:
 			Music.getPreset(value);
-			Music.sendPreset(value);
+			Music.sendInstrument();
 			break;
 		default:
 			break;
