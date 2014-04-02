@@ -12,14 +12,14 @@ Serial myPort;
 int rightMargin = 0;
 int scrollStep = 1;
 
-int expectedValues = 6;
+int expectedValues = 12;
 
 boolean textOutput = false;
 ArrayList graphers;
 
 void setup () {
 
-  size(200, 600);
+  size(200, 700);
 
   // List all the available serial ports
   println(Serial.list());

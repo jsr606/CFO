@@ -1,4 +1,15 @@
+source files for the CHEAP, FAT and OPEN project
+===========================================================================
+more info: http://8bitklubben.dk/project/CFO/
+===========================================================================
+in this repository you will find code for the CFO synth ("arduino" folder), the CFO tracker ("processing" folder), illustrator files for the acryl casing ("acrylic casing and lasercutter fix for PCB" folder), and CAD files for the hardware design ("eagle" folder)
 
+sound code + hardware design in this project is based on the arduino synthesizer kit by critter and guittari: http://www.critterandguitari.com/content/arduino-synthesizer-kit
+
+PLEASE NOTE:
+this is a work in progress: all code and hardware design still consist bugs. dig the glitches! njam njam!
+
+--- enjoy
           _____                    _____                   _______         
          /\    \                  /\    \                 /::\    \        
         /::\    \                /::\    \               /::::\    \       
@@ -20,8 +31,3 @@
        \:::\____\                                         \::/____/        
         \::/    /                                          ~~              
          \/____/       
-cheap                    fat                       open
-===========================================================================
-vsionhairies in effect!
-===========================================================================
-http://vsionhairies.info/
