@@ -1,7 +1,3 @@
-#include <spi4teensy3.h>
-#include <EEPROM.h>
-#include <Haarnet.h>
-
 #include <Wire.h>
 #include "Adafruit_TCS34725.h"
 
