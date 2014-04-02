@@ -1,4 +1,4 @@
-/* 
+	/* 
  Synth.cpp - Friction Music library
  Copyright (c) 2013 Science Friction. 
  All right reserved.
@@ -44,8 +44,10 @@ const float hertzTable[] = {
 #include <FrictionHertzTable.inc>	
 };
 
-uint8_t sequencer[4][32];
-uint8_t preset[16][128];
+uint8_t sequencer[128];
+uint8_t instrument[128];
+uint8_t preset[MAX_PRESETS][256];
+
 
 // Used in the functions that set the envelope timing
 const uint32_t envTimeTable[] = {1,5,9,14,19,26,34,42,53,65,79,95,113,134,157,182,211,243,278,317,359,405,456,511,570,633,702,776,854,939,1029,1124,1226,1333,1448,1568,1695,1829,1971,2119,2274,2438,2610,2789,2977,3172,3377,3590,3813,4044,4285,4535,4795,5065,5345,5635,5936,6247,6569,6902,7247,7602,7970,8349,8740,9143,9559,9986,10427,10880,11347,11827,12321,12828,13349,13883,14433,14996,15574,16167,16775,17398,18036,18690,19359,20045,20746,21464,22198,22949,23716,24501,25303,26122,26959,27813,28686,29577,30486,31413,32359,33325,34309,35312,36335,37378,38440,39522,40625,41748,42892,44056,45241,46448,47675,48925,50196,51489,52803,54141,55500,56883,58288,59716,61167,62642,64140,65662};
@@ -350,25 +352,65 @@ void MMusic::spi_setup()
 
 void MMusic::getPreset(uint8_t p)
 {
-	for(uint8_t i=0; i<128; i++) {
-		Midi.controller(Midi.midiChannel, i, preset[p][i]);	
+//	cli();
+	if(p < MAX_PRESETS) {
+		Serial.print("GETTING PRESET NUMBER : ");
+		Serial.println(p);
+		for(uint8_t i=2; i<128; i++) {
+			Midi.controller(Midi.midiChannel, i, preset[p][i]);
+//			Serial.println(preset[p][i]);
+			instrument[i] = preset[p][i];
+			usbMIDI.sendControlChange(i, instrument[i], Midi.midiChannel);
+		}
 	}
-	
+//	sei();
 }
 
 
 void MMusic::savePreset(uint8_t p)
 {
+	if(p < MAX_PRESETS) {
+		Serial.print("SAVING PRESET NUMBER : ");
+		Serial.println(p);
+		for(uint8_t i=0; i<128; i++) {
+//			Serial.print(i);
+//			Serial.print(" : ");
+//			preset[p][i] = instrument[i];
+//			Serial.println(preset[p][i]);
+			//insert code for saving instrument sequence here
+			// save to EEPROM
+			cli();
+			EEPROM.write(p * PRESET_SIZE + i, instrument[i]);
+			sei();
+		}
+	}
+}
+
+
+void MMusic::loadAllPresets()
+{
+	for(uint8_t i=2; i<128; i++) {
+		for(uint8_t p=0; p<MAX_PRESETS;p++) {
+			preset[p][i] = EEPROM.read(p * PRESET_SIZE + i);
+		}		
+	}
 }
 
 void MMusic::init()
 {
     pinMode(MUX_A, OUTPUT);
     pinMode(MUX_B, OUTPUT);
-    
+	
+	for(uint8_t i=0; i<128; i++) {
+		instrument[i] = 0;
+		for(uint8_t p=0; p<MAX_PRESETS;p++) {
+			preset[p][i] = 0;
+		}
+	}
+	
 	sampleRate = SAMPLE_RATE;
 	sample = 0;
-	is12bit = false;
+	set12bit(false);
 	setPortamento(0);
 	
 	dPhase1 = 0;
@@ -398,7 +440,7 @@ void MMusic::init()
 	setFM2Shape(0);
 	setFM3Shape(0);
 	
-	zeroFM = 1;
+	fmToZeroHertz(true);
 	accumulator1 = 0;
 	accumulator2 = 0;
 	accumulator3 = 0;
@@ -463,6 +505,8 @@ void MMusic::init()
 	dacSetB |= (DAC_B << DAC_AB) | (0 << DAC_BUF) | (1 << DAC_GA) | (1 << DAC_SHDN);
     
     analogWriteResolution(12);
+	
+	loadAllPresets();
 	
 	spi_setup();
 
@@ -1428,6 +1472,12 @@ void MMidi::aftertouch(uint8_t channel, uint8_t note, uint8_t pressure) {
 
 void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 	
+	if(value >= 128) value = 127;
+	instrument[number] = value;
+	Serial.print(number);
+	Serial.print(" : ");
+	Serial.println(instrument[number]);
+	
 	switch(number) {
 		case IS_12_BIT:
 			Music.set12bit(value/64);
@@ -1466,25 +1516,34 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			Music.setFMoctaves(value+1);
 			break;
 		case LFO1:
-			Music.setOsc1LFO(value/64);
+			if(value) {
+				Music.setOsc1LFO(true);
+				Music.setFrequency1(Music.getNoteFrequency(value)/1024.0);
+			} else {
+				Music.setOsc1LFO(false);
+			}
+//			if(Music.osc1LFO) Music.setFrequency1(Music.getNoteFrequency(value)/1024.0);
+//			else Music.setFrequency1(Music.getNoteFrequency(value));
 			break;
 		case LFO2:
-			Music.setOsc2LFO(value/64);
+			if(value) {
+				Music.setOsc2LFO(true);
+				Music.setFrequency2(Music.getNoteFrequency(value)/1024.0);
+			} else {
+				Music.setOsc2LFO(false);
+			}
+			//			if(Music.osc2LFO) Music.setFrequency2(Music.getNoteFrequency(value)/1024.0);
+//			else Music.setFrequency2(Music.getNoteFrequency(value));
 			break;
 		case LFO3:
-			Music.setOsc3LFO(value/64);
-			break;
-		case FREQUENCY1:
-			if(Music.osc1LFO) Music.setFrequency1(Music.getNoteFrequency(value)/1024.0);
-			else Music.setFrequency1(Music.getNoteFrequency(value));
-			break;
-		case FREQUENCY2:
-			if(Music.osc2LFO) Music.setFrequency2(Music.getNoteFrequency(value)/1024.0);
-			else Music.setFrequency2(Music.getNoteFrequency(value));
-			break;
-		case FREQUENCY3:
-			if(Music.osc3LFO) Music.setFrequency3(Music.getNoteFrequency(value)/1024.0);
-			else Music.setFrequency3(Music.getNoteFrequency(value));
+			if(value) {
+				Music.setOsc3LFO(true);
+				Music.setFrequency3(Music.getNoteFrequency(value)/1024.0);
+			} else {
+				Music.setOsc3LFO(false);
+			}
+			//			if(Music.osc3LFO) Music.setFrequency3(Music.getNoteFrequency(value)/1024.0);
+//			else Music.setFrequency3(Music.getNoteFrequency(value));
 			break;
 		case DETUNE1:
 			Music.setDetune1(map(value,0,127,-100,100)*0.0005946);
@@ -1556,15 +1615,15 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 		case FM3:
 			Music.setFM3(value);
 			break;
-		case FM1_OCTAVES:
-			Music.setFM1octaves(value+1);
-			break;
-		case FM2_OCTAVES:
-			Music.setFM2octaves(value+1);
-			break;
-		case FM3_OCTAVES:
-			Music.setFM3octaves(value+1);
-			break;
+//		case FM1_OCTAVES:
+//			Music.setFM1octaves(value+1);
+//			break;
+//		case FM2_OCTAVES:
+//			Music.setFM2octaves(value+1);
+//			break;
+//		case FM3_OCTAVES:
+//			Music.setFM3octaves(value+1);
+//			break;
 		case FM1_SOURCE:
 			Music.setFM1Source(value);
 			break;
@@ -1615,6 +1674,12 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 		case ENV2_RELEASE:
 			Music.setEnv2Release(value);
 			break;
+		case PRESET_SAVE:
+			Music.savePreset(value);
+			break;
+		case PRESET_RECALL:
+			Music.getPreset(value);
+			break;
 		default:
 			break;
 	} 
@@ -1622,7 +1687,7 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 
 
 void MMidi::programChange(uint8_t channel, uint8_t number) {
-	// Write code here for Program Change 
+	Music.getPreset(number);
 }
 
 

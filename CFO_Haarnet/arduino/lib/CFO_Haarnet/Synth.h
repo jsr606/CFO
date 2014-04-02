@@ -25,6 +25,7 @@
 #include <Arduino.h>
 #include <spi4teensy3.h>
 #include "MCP4251.h"
+#include <EEPROM.h>
 
 #ifndef Synth_h // include guard
 #define Synth_h
@@ -115,8 +116,14 @@ Midi
 #define MOD_OSC2 4
 #define MOD_OSC3 5
 
+// parameters for presets || the two parameters below should multiply to 2048.
+#define MAX_PRESETS 8
+#define PRESET_SIZE 256
 
-//synth parameters as MIDI controller numbers
+//synth functions and parameters as MIDI controller numbers
+#define PRESET_SAVE 0
+#define PRESET_RECALL 1
+
 #define IS_12_BIT 3
 #define CUTOFF 4
 #define ZERO_HZ_FM 5
@@ -125,7 +132,7 @@ Midi
 #define PORTAMENTO 8
 #define FILTER_TYPE 9
 
-#define FREQUENCY1 10
+#define LFO1 10
 #define SEMITONE1 11
 #define DETUNE1 12
 #define GAIN1 13
@@ -134,9 +141,9 @@ Midi
 #define FM1_OCTAVES 16
 #define FM1_SOURCE 17
 #define FM1_SHAPE 18
-#define LFO1 19
+#define FREQUENCY1 19
 
-#define FREQUENCY2 20
+#define LFO2 20
 #define SEMITONE2 21
 #define DETUNE2 22
 #define GAIN2 23
@@ -145,9 +152,9 @@ Midi
 #define FM2_OCTAVES 26
 #define FM2_SOURCE 27
 #define FM2_SHAPE 28
-#define LFO2 29
+#define FREQUENCY2 29
 
-#define FREQUENCY3 30
+#define LFO3 30
 #define SEMITONE3 31
 #define DETUNE3 32
 #define GAIN3 33
@@ -156,7 +163,7 @@ Midi
 #define FM3_OCTAVES 36
 #define FM3_SOURCE 37
 #define FM3_SHAPE 38
-#define LFO3 39
+#define FREQUENCY3 39
 
 #define CUTOFF_MOD_AMOUNT 70
 #define CUTOFF_MOD_DIRECTION 71
@@ -206,12 +213,14 @@ public:
 	
 	// INITIALIZER
     void init();
-	void getPreset(uint8_t instrument);
-	void savePreset(uint8_t instrument);
 	void spi_setup();
 	void set12bit(bool b);
 	bool is12bit;
-
+	
+	// PRESETS
+	void getPreset(uint8_t p);
+	void savePreset(uint8_t p);
+	void loadAllPresets();
 
 	// AUDIO INTERRUPT SERVICE ROUTINE
 	void synthInterrupt8bit();
