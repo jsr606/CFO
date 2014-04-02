@@ -1,6 +1,6 @@
 /*
  ////////////////////////////////////////////////////////////////////////////////////
- serial monitor for uCFO hårnet
+ serial monitor for CFO hårnet
  resonate 2014
  ////////////////////////////////////////////////////////////////////////////////////
  */
@@ -22,10 +22,12 @@ void setup () {
   size(200, 700);
 
   // List all the available serial ports
-  println(Serial.list());
+  printArray(Serial.list());
 
   // connect to arduino / serial port
-  myPort = new Serial(this, Serial.list()[9], 9600);
+  myPort = new Serial(this, Serial.list()[5], 9600);
+  
+  
   
   // don't generate a serialEvent() unless you get a newline character:
   myPort.bufferUntil('\n');
