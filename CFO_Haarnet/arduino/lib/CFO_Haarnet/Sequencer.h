@@ -34,10 +34,20 @@ public:
     void init();
     void update();
     
-    int newSequence(int bpm, func_cb cb);
+    int newSequence(int bpm, func_cb cb, int subdiv);
     
     bool stopSequence(int index);
     bool startSequence(int index);
+    
+    bool setSequenceBpm(int index, int bpm);
+    bool setSequenceSubdiv(int index, int subdiv);
+    
+    int getSequenceBpm(int index);
+    int getSequenceSubdiv(int index);
+    
+    bool setCallback(int index, func_cb cb);
+    func_cb getCallback(int index);
+    
 
 private:
     seq* _sequences[MAX_SEQ];
@@ -50,12 +60,17 @@ class seq {
     
 private:
     
-    seq(int bpm, func_cb cb);
+    seq(int bpm, func_cb cb, int subdiv);
     
     int _bpm;
+    int _subdiv;
     int _tempo;
     
     unsigned long ltick;
+
+    void setsubdiv(int v);
+    int getsubdiv();
+
     
     void setbpm(int v);
     int getbpm();
