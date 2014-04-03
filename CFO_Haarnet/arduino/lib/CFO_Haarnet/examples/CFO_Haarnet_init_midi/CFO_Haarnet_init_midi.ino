@@ -8,6 +8,10 @@
 #include <EEPROM.h>
 #include <Haarnet.h>
 
+long timeNow = 0;
+long lastTime = 0;
+long timeDelay = 500;
+
 void setup() {
 
   // We initialise the sound engine by calling Music.init() which outputs a tone
@@ -29,4 +33,10 @@ void setup() {
 void loop() {
 
   usbMIDI.read();
+  
+  timeNow = millis();
+  if((timeNow - lastTime) > timeDelay) {
+    Music.noteOn(48);
+    lastTime = timeNow;
+  }
 }
