@@ -932,16 +932,19 @@ void MMusic::setFMoctaves(uint8_t octs) {
 
 
 void MMusic::setFM1octaves(uint8_t octs) {
+	if(octs < 1) octs = 1;
 	fmOctaves1 = octs;
 }
 
 
 void MMusic::setFM2octaves(uint8_t octs) {
+	if(octs < 1) octs = 1;
 	fmOctaves2 = octs;
 }
 
 
 void MMusic::setFM3octaves(uint8_t octs) {
+	if(octs < 1) octs = 1;
 	fmOctaves3 = octs;
 }
 
