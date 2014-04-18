@@ -378,6 +378,83 @@ void MMusic::getPreset(uint8_t p)
 //	sei();
 }
 
+void MMusic::getRandomizedPreset(uint8_t p, uint8_t r)
+{
+
+	Serial.print("randomize preset ");
+	Serial.print(p);
+	Serial.print(" by ");
+	Serial.print(r);
+	Serial.println("%");
+
+	// cli();
+	
+	// load preset values
+
+	if(p < MAX_PRESETS) {
+		for(uint8_t i=2; i<128; i++) {
+			instrument[i] = userPresets[p][i];
+		}
+	} else {
+		for(uint8_t i=2; i<128; i++) {
+			instrument[i]=programPresets[(p-MAX_PRESETS)*PRESET_SIZE+i];
+		}
+		
+	}
+
+	// apply randomization
+	
+	for(uint8_t i=2; i<128; i++) {
+
+		uint8_t presetValue = instrument[i];
+
+		int ran = 0;
+		
+		// randomization only affects the following settings.
+		// randomizing all paramaters will make a lot of unusable sounds.
+
+		// 4: cutoff, 70: cutoff mod, 6: fm oct, 8: portamento
+		if (i==4||i==70||i==6||i==8) {
+			ran = random(float(r)/100*-127,float(r)/100*127);
+		}
+		
+		// 10: LFO1, 12: detune1, 13: gain1, 15: FM1
+		// 20: LFO2, 22: detune2, 23: gain2, 25: FM2
+		// 30: LFO3, 32: detune3, 33: gain3, 35: FM3
+		if (i==10||i==12||i==13||i==15||i==20||i==22||i==23||i==25||i==30||i==32||i==33||i==35) {
+			ran = random(float(r)/100*-127,float(r)/100*127);
+		}
+
+		// 114: attack1, 115: decay1, 116: sustain1, 117: release1
+		// 124: attack2, 125: decay2, 126: sustain2, 127: release2
+		if (i==114||i==115||i==116||i==117||i==124||i==125||i==126||i==127) {
+			ran = random(float(r)/100*-127,float(r)/100*127);
+		}
+
+		uint8_t newVal = constrain(presetValue+ran,0,127);			
+		
+		if (ran != 0)
+		{
+			/*
+			Serial.print(i);
+			Serial.print(": preset value ");
+			Serial.print(presetValue);	
+			Serial.print(" randomized by ");
+			Serial.print(ran);
+			Serial.print(" yielding ");
+			Serial.println(newVal);
+			*/
+		}
+
+		instrument[i] = newVal;		
+
+		Midi.controller(Midi.midiChannel, i, instrument[i]);
+	}
+
+	// sei();
+
+}
+
 
 void MMusic::sendInstrument()
 {
@@ -398,10 +475,10 @@ void MMusic::savePreset(uint8_t p)
 		Serial.print("SAVING PRESET NUMBER : ");
 		Serial.println(p);
 		for(uint8_t i=0; i<128; i++) {
-			Serial.print(i);
-			Serial.print(" : ");
+			//Serial.print(i);
+			//Serial.print(" : ");
 			userPresets[p][i] = instrument[i];
-			Serial.println(userPresets[p][i]);
+			//Serial.println(userPresets[p][i]);
 			//insert code for saving instrument sequence here
 			cli();
 			EEPROM.write(p * PRESET_SIZE + i, instrument[i]);
@@ -1511,9 +1588,9 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 	
 	if(value >= 128) value = 127;
 	instrument[number] = value;
-	Serial.print(number);
-	Serial.print(" : ");
-	Serial.println(instrument[number]);
+//	Serial.print(number);
+//	Serial.print(" : ");
+//	Serial.println(instrument[number]);
 	
 	switch(number) {
 		case IS_12_BIT:
