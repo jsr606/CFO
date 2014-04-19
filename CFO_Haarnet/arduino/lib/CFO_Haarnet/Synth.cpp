@@ -1,4 +1,4 @@
-	/* 
+/* 
  Synth.cpp - Friction Music library
  Copyright (c) 2013 Science Friction. 
  All right reserved.
