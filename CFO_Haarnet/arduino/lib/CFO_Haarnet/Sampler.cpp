@@ -22,6 +22,7 @@
  */
 
 #include "Sampler.h"
+#include <Arduino.h>
 
 
 Sampler::Sampler(int len) {
