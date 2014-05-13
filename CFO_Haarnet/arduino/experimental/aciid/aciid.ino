@@ -32,6 +32,13 @@ void setup() {
   usbMIDI.setHandleNoteOff(OnNoteOff);
   usbMIDI.setHandleNoteOn(OnNoteOn);
   usbMIDI.setHandleControlChange(OnControlChange);  
+    
+  // set internal pulldown resistors on bodyswitches
+  *portConfigRegister(bodySwitch1) = PORT_PCR_MUX(1) | PORT_PCR_PE;
+  *portConfigRegister(bodySwitch2) = PORT_PCR_MUX(1) | PORT_PCR_PE;
+  *portConfigRegister(bodySwitch3) = PORT_PCR_MUX(1) | PORT_PCR_PE;
+  
+
   
   
   
@@ -41,9 +48,24 @@ void loop() {
 
   usbMIDI.read();
   
+  int a1 = analogRead(bodySwitch1);
+  Serial.println(a1);
+  int a2 = analogRead(bodySwitch2);
+  int a3 = analogRead(bodySwitch3);
+   
   timeNow = millis();
   if((timeNow - lastTime) > timeDelay) {
-    Music.noteOn(24+random(3)*12);
+    
+    int randomizer = random(5);
+    int glide = 0;
+    
+    int oct = 1;
+    if (randomizer == 0) {
+      oct = map(a1,0,1023,0,4);
+      glide = map(a2,0,1023,0,127);
+    }
+    Music.setPortamento(glide);
+    Music.noteOn(24+oct*12);
     lastTime = timeNow;
   }
 }
