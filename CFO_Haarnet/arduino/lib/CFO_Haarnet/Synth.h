@@ -99,12 +99,16 @@
 #define MIN_ENV_GAIN -65535
 
 // MIDI specific constants
-#ifndef MIDI_CHANNEL
-	#define MIDI_CHANNEL 1
-#elif (MIDI_CHANNEL > 0)&&(MIDI_CHANNEL < 17)
-#else
-	#error MIDI_CHANNEL should be between 1 - 16
-#endif
+
+#define MIDI_SERIAL Serial1
+#define MIDI_THROUGH true
+
+//#ifndef MIDI_CHANNEL
+//	#define MIDI_CHANNEL 2
+//#elif (MIDI_CHANNEL > 0)&&(MIDI_CHANNEL < 17)
+//#else
+//	#error MIDI_CHANNEL should be between 1 - 16
+//#endif
 
 // parameters for modulation
 #define MOD_FULL 0
@@ -460,7 +464,8 @@ extern MMusic Music;
 class MMidi {
 public:
 	void init();
-	void checkMidi();
+	void checkSerialMidi();
+    void setChannel(uint8_t channel);
 	
 	void midiHandler();
 	void noteOff(uint8_t channel, uint8_t note, uint8_t vel);

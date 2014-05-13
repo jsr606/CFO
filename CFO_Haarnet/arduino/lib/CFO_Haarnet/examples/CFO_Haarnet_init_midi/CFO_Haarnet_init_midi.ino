@@ -15,7 +15,9 @@ long timeDelay = 500;
 void setup() {
 
   // We initialise the sound engine by calling Music.init() which outputs a tone
+//  Midi.init();
   Music.init();
+  Midi.setChannel(MIDI_CHANNEL);
   Music.enableEnvelope1();
   Music.enableEnvelope2();
   Music.setWaveform1(SAW);
@@ -33,10 +35,11 @@ void setup() {
 void loop() {
 
   usbMIDI.read();
+  Midi.checkSerialMidi();
   
   timeNow = millis();
   if((timeNow - lastTime) > timeDelay) {
-    Music.noteOn(48);
+//    Music.noteOn(48);
     lastTime = timeNow;
   }
 }
