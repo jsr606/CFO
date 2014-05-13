@@ -1,5 +1,5 @@
 /*
- Haarnet.h - Friction Music library
+ Sequencer.h - Friction Music library
  Copyright (c) 2014 Science Friction.
  All right reserved.
  

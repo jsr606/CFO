@@ -1,4 +1,4 @@
-	/* 
+/* 
  Synth.cpp - Friction Music library
  Copyright (c) 2013 Science Friction. 
  All right reserved.
@@ -463,7 +463,7 @@ void MMusic::sendInstrument()
 //	Serial.println(" OVER MIDI");
 	cli();
 	for(uint8_t i=2; i<128; i++) {
-		usbMIDI.sendControlChange(i, instrument[i], MIDI_CHANNEL);
+		usbMIDI.sendControlChange(i, instrument[i], Midi.midiChannel+1);
 	}
 	sei();
 }
@@ -509,8 +509,8 @@ void MMusic::init()
 {
     pinMode(MUX_A, OUTPUT);
     pinMode(MUX_B, OUTPUT);
-	
-	Midi.midiChannel = MIDI_CHANNEL - 1;
+
+    Midi.init();
 	
 	for(uint8_t i=0; i<128; i++) {
 		instrument[i] = 0;
@@ -1479,22 +1479,32 @@ void MMusic::setEnv2VelPeak(uint8_t vel)
 bool midiRead = false;
 
 void MMidi::init()
-{	
-	Serial.begin(9600);
+{
+	pinMode(0, INPUT);
+    Serial.begin(9600);
+    MIDI_SERIAL.begin(31250);
 	
 	midiBufferIndex = 0;
-	midiChannel = MIDI_CHANNEL - 1;
-	if(midiChannel < 0 || midiChannel > 15) midiChannel = 0;
-	
+	midiChannel = 1;
+    Serial.println("MIDI intialised on channel 1. Use Midi.setChannel(channel) to set to other channel");
 }
-					
 
-void MMidi::checkMidi()
+void MMidi::setChannel(uint8_t channel)
+{
+    if(channel < 1 || channel > 16) {
+        Serial.println("MIDI channel must be set to a number between 1 and 16");
+    }
+    else midiChannel = channel - 1;
+}
+
+
+void MMidi::checkSerialMidi()
 {
 	//while(Serial.available() > 32) Serial.read();
-	while(Serial.available() > 0) {
-		
-		data = Serial.read();
+//	while(MIDI_SERIAL.available() > 0) {
+    while(MIDI_SERIAL.available()) {
+        
+		data = MIDI_SERIAL.read();
 		
 		if(data & 0x80 && (data & 0x0F) == midiChannel) {	// bitmask with 10000000 to see if byte is over 127 (data&0x80)
 			midiBufferIndex = 0;							// and check if the midi channel corresponds to the midiChannel
@@ -1509,6 +1519,10 @@ void MMidi::checkMidi()
 			if (midiBufferIndex > 2) {
 				midiRead = false;
 				midiHandler();
+                Serial.println("MIDI RECEIVED");
+                Serial.println(midiBuffer[0], HEX);
+                Serial.println(midiBuffer[1], HEX);
+                Serial.println(midiBuffer[2], HEX);
 			}
 		}
 	}	
@@ -1516,66 +1530,76 @@ void MMidi::checkMidi()
 
 
 void MMidi::midiHandler() {
-	
-    uint8_t midiChannel = (midiBuffer[0] & 0x0F);
+
+    if(MIDI_THROUGH) {
+        MIDI_SERIAL.write(midiBuffer[0]);
+        MIDI_SERIAL.write(midiBuffer[1]);
+        MIDI_SERIAL.write(midiBuffer[2]);
+    }
+//    uint8_t midiChannel = (midiBuffer[0] & 0x0F);
     
-	
-	switch(midiBuffer[0] & 0xF0) { // bit mask with &0xF0 ?
-        case 0x80:
-			noteOff			(midiBuffer[0] & 0x0F,     // midi channel 0-16
-							 midiBuffer[1] & 0x7F,   // note value 0-127
-							 midiBuffer[2] & 0x7F);  // note velocity 0-127
-			break;
-			
-        case 0x90:
-			noteOn			(midiBuffer[0] & 0x0F,     // midi channel 0-16
-							 midiBuffer[1] & 0x7F,   // note value 0-127
-							 midiBuffer[2] & 0x7F);  // note velocity 0-127
-			break;
-			
-        case 0xA0:
-			aftertouch		(midiBuffer[0] & 0x0F,   // midi channel 0-16
-							 midiBuffer[1] & 0x7F, // note value 0-127
-							 midiBuffer[2] & 0x7F);// note velocity 0-127
-			break;
-			
-        case 0xB0:
-			controller		(midiBuffer[0] & 0x0F,   // midi channel 0-16
-							 midiBuffer[1] & 0x7F, // controller number 0-127
-							 midiBuffer[2] & 0x7F);// controller value 0-127
-			break;
-			
-        case 0xC0:
-			programChange	(midiBuffer[0]  & 0x0F,    // midi channel 0-16
-							 midiBuffer[1] & 0x7F);  // program number 0-127
-			break;
-			
-        case 0xD0:
-			channelPressure	(midiBuffer[0]  & 0x0F,    // midi channel 0-16
-							 midiBuffer[1] & 0x7F);  // pressure amount 0-127
-			break;
-			
-        case 0xE0:
-			pitchWheel		(midiBuffer[0] & 0x0F,   // midi channel 0-16
-							 midiBuffer[1] & 0x7F, // higher bits 0-6
-							 midiBuffer[2] & 0x7F);// lower bits 7-13
-			break;
-			
-        default:
-			break;
-	}
+	if((midiBuffer[0] & 0x0F) == midiChannel) {
+        switch(midiBuffer[0] & 0xF0) { // bit mask with &0xF0 ?
+            case 0x80:
+                noteOff			(midiBuffer[0] & 0x0F,     // midi channel 0-15
+                                 midiBuffer[1] & 0x7F,   // note value 0-127
+                                 midiBuffer[2] & 0x7F);  // note velocity 0-127
+                break;
+                
+            case 0x90:
+                noteOn			(midiBuffer[0] & 0x0F,     // midi channel 0-15
+                                 midiBuffer[1] & 0x7F,   // note value 0-127
+                                 midiBuffer[2] & 0x7F);  // note velocity 0-127
+                break;
+                
+            case 0xA0:
+                aftertouch		(midiBuffer[0] & 0x0F,   // midi channel 0-15
+                                 midiBuffer[1] & 0x7F, // note value 0-127
+                                 midiBuffer[2] & 0x7F);// note velocity 0-127
+                break;
+                
+            case 0xB0:
+                controller		(midiBuffer[0] & 0x0F,   // midi channel 0-15
+                                 midiBuffer[1] & 0x7F, // controller number 0-127
+                                 midiBuffer[2] & 0x7F);// controller value 0-127
+                break;
+                
+            case 0xC0:
+                programChange	(midiBuffer[0]  & 0x0F,    // midi channel 0-15
+                                 midiBuffer[1] & 0x7F);  // program number 0-127
+                break;
+                
+            case 0xD0:
+                channelPressure	(midiBuffer[0]  & 0x0F,    // midi channel 0-15
+                                 midiBuffer[1] & 0x7F);  // pressure amount 0-127
+                break;
+                
+            case 0xE0:
+                pitchWheel		(midiBuffer[0] & 0x0F,   // midi channel 0-15
+                                 midiBuffer[1] & 0x7F, // higher bits 0-6
+                                 midiBuffer[2] & 0x7F);// lower bits 7-13
+                break;
+                
+            default:
+                break;
+        }
+    }
+    else Serial.println("Skipped MIDI message on other channel");
 }
 
 
 void MMidi::noteOff(uint8_t channel, uint8_t note, uint8_t vel) {
-	
-	Music.noteOff(note);
+    Serial.print("NoteOff received on channel: ");
+    Serial.println(channel, HEX);
+
+    Music.noteOff(note);
 }
 
 
 void MMidi::noteOn(uint8_t channel, uint8_t note, uint8_t vel) {
-	
-	Music.noteOn(note, vel);
+    Serial.print("NoteOn received on channel: ");
+    Serial.println(channel, HEX);
+    Music.noteOn(note, vel);
 }
 
 
