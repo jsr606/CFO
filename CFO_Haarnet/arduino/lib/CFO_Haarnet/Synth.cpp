@@ -155,8 +155,7 @@ void MMusic::synthInterrupt8bitFM ()
 
 
 void MMusic::synthInterrupt12bitSineFM()
-{
-	
+{    
 	dPhase1 = dPhase1 + (period1 - dPhase1) / portamento;
 	modulator1 = (fmAmount1 * fmOctaves1 * (*osc1modSource_ptr))>>10;
 	modulator1 = (modulator1 * (*osc1modShape_ptr))>>16;
