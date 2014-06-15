@@ -25,7 +25,7 @@
 
 IntervalTimer synthTimer;
 
-MCP4251 Mcp4251 = MCP4251( MCP4251_CS, 100000.0 ); 
+//MCP4251 Mcp4251 = MCP4251( MCP4251_CS, 100000.0 ); 
 
 MMusic Music;
 
