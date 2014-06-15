@@ -1,0 +1,9 @@
+Great tutorial :)
+
+Only a few comments:
+
+At the moment it kinda looks like the text is belonging to the picture above, rather than the picture below. I lean towards text (captions) sitting under the picture as we are used to this from articles, etc.
+
+In terms of the height of the 100nF cap and LEDs, it's better if they are added after the thumbwheel, IC socket and mini jacks.
+
+Use knobs, not buttons, for the knobs of the pots.
