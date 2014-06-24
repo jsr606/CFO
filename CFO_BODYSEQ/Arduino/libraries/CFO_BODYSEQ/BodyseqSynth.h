@@ -343,6 +343,20 @@ public:
 	bool osc1LFO;
 	bool osc2LFO;
 	bool osc3LFO;
+    
+    int32_t oscil1;
+	int32_t oscil2;
+	int32_t oscil3;
+    int32_t lastOscil1;
+	int32_t lastOscil2;
+	int32_t lastOscil3;
+	int64_t integralOfOscil1;
+	int64_t integralOfOscil2;
+	int64_t integralOfOscil3;
+	int64_t derivativeOfOscil1;
+	int64_t derivativeOfOscil2;
+	int64_t derivativeOfOscil3;
+
 	
 private:
 	// TIMER VARIABLES
@@ -388,9 +402,6 @@ private:
 	int32_t fraction1;
 	int32_t fraction2;
 	int32_t fraction3;
-	int32_t oscil1;
-	int32_t oscil2;
-	int32_t oscil3;
 	int64_t modulator1;
 	int64_t modulator2;
 	int64_t modulator3;

@@ -632,6 +632,17 @@ void MMusic::init()
 	dacSetB |= (DAC_B << DAC_AB) | (0 << DAC_BUF) | (1 << DAC_GA) | (1 << DAC_SHDN);
     
     analogWriteResolution(12);
+//    analogWrite(A14, 0);  //Set the DAC output to 0.
+////    DAC0_C0 &= 0b10111111;  //uses 1.2V reference for DAC instead of 3.3V
+//    
+//    SIM_SCGC2 |= SIM_SCGC2_DAC0;
+//	DAC0_C0 = DAC_C0_DACEN;                   // 1.2V VDDA is DACREF_2
+////	DAC0_C0 = DAC_C0_DACEN | DAC_C0_DACRFS; // 3.3V VDDA is DACREF_2
+//	// slowly ramp up to DC voltage, approx 1/4 second
+//	for (int16_t i=0; i<128; i++) {
+//		analogWrite(A14, i);
+//		delay(2);
+//	}
 	
 	loadAllPresets();
 	
