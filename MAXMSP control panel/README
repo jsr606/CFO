@@ -1,0 +1,13 @@
+control panel for the CFO BODYSEQ, HÅRNET (and other teensy based CFOs)
+=======================================================================
+
+this dashboard sends the appropriate MIDI commands to the CFO synth to change most sound parameters in a user-friendly way
+
+you will require either max/msp (free trial) or max runtime (free) to run this: http://cycling74.com/downloads/
+
+to get started:
+1. connect you CFO
+2. click the "Update Lists" button - this will populate the list of possible MIDI inputs and outputs
+3. choose: Out: Teensy MIDI
+4. make sounds! (please note the control panel does not generate MIDI notes, it only sets up the synthesis engines. to play notes, you either have to do this with the synth itself or via MIDI sequencing from a DAW or something similar)
+5. to save or recall presets select bank U/A/B/C (U is user presets, will be saved to CFO EEPROM, and can be restored after power off)
