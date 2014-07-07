@@ -59,10 +59,12 @@
 // Multiplexer Pins (CD4052)
 #define MUX_A 8
 #define MUX_B 7
-#define LOWPASS 0
-#define HIGHPASS 1
-#define BANDPASS 2
+#define LP6 0
+#define HP6 1
+#define BP6 2
 #define THRU 3
+#define LP24 4
+#define MOOG 5
 
 // SPI pins
 #define MCP4251_CS 9 // Digital 9
@@ -248,6 +250,8 @@ public:
 	void filter();
 	void lowpassFilter();
 	void highpassFilter();
+    void filterLP24dB();
+    void filterMoogLadder();
 	void setCutoff(uint16_t c);
 	void setResonance(uint8_t res);
 //	void setResonance(int32_t res);
@@ -261,6 +265,8 @@ public:
     
     bool lowpass;
     bool highpass;
+    bool lowpass24dB;
+    bool moogLadder;
 
 
 		
@@ -433,8 +439,33 @@ private:
     
     int64_t a0;
     int64_t a1;
+    int64_t a2;
+    int64_t a3;
+    int64_t a4;
+    int64_t b0;
     int64_t b1;
-	uint16_t cutoff;
+    int64_t b2;
+    int64_t b3;
+    int64_t b4;
+
+    int64_t x0;
+    int64_t x1;
+    int64_t x2;
+    int64_t x3;
+    int64_t x4;
+    int64_t y0;
+    int64_t y1;
+    int64_t y2;
+    int64_t y3;
+    int64_t y4;
+    
+    int64_t k;
+    int64_t z1;
+    int64_t z2;
+    int64_t z3;
+    int64_t z4;
+	
+    uint16_t cutoff;
 	int32_t resonance;
     
 	int32_t cutoffModAmount;
