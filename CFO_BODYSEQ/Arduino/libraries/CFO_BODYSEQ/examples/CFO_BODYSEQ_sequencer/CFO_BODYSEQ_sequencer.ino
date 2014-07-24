@@ -9,12 +9,12 @@
 #include <EEPROM.h>
 #include <CFO_BODYSEQ.h>
 
-const int seqLed [] = {2,3,4,5,6,7,8,9};
+const int seqLed [] = {2,3,4,5,6,7,8,9};
 int seqLedVal [] = {0,0,0,0,0,0,0,0};
 const int statusLed1 = 10, statusLed2 = 11;
 const int button1 = 12, button2 = 13;
 const int pot1 = A0, pot2 = A1;
-const int bodySwitch [] = {A2,A3,A4,A5,A6,A7,A8,A9};
+const int bodySwitch [] = {A2,A3,A4,A5,A6,A7,A8,A9};
 
 unsigned long lastPrint = millis();
 
@@ -45,7 +45,7 @@ const int scale[3][7] = {
 const int scaleLength = 24;
 int activeScale [scaleLength];
 
-int bodySwitchVal [] = {0,0,0,0,0,0,0,0};
+int bodySwitchVal [] = {0,0,0,0,0,0,0,0};
 
 boolean bodySwitchesTouched = false;
 
@@ -207,7 +207,7 @@ void setCutoffFromPots() {
   Music.setCutoffModAmount((1023-analogRead(pot2))*64);
 }
 
-void updateLEDs() {
+void updateLEDs() {
   for (int i = 0; i<8; i++) {
     if (seqNote[activeSeq*8+i] != -1) {
       SoftPWMSet(seqLed[i], 100);
@@ -267,7 +267,7 @@ void noteInputFromBodyswitches() {
   }
 }
 
-void readPots() {
+void readPots() {
   int newPotVal1 = 1023-analogRead(pot1);
   int newPotVal2 = 1023-analogRead(pot2);
   
@@ -291,7 +291,7 @@ void readPots() {
 
 }
 
-void changeOctave() {
+void changeOctave() {
 
   // change from pot
   int newOctave = map(1023-analogRead(pot1),0,1023,-3,4);
@@ -324,8 +324,8 @@ void changeMode() {
   }
 }
 
-void changePreset() {
-  int newPreset = map(1023-analogRead(pot2),0,1023,0,63);
+void changePreset() {
+  int newPreset = map(1023-analogRead(pot2),0,1023,0,32);
   if (preset != newPreset) { // only do something if preset has changed
     preset = newPreset;
     Music.getPreset(preset);
@@ -358,7 +358,7 @@ void updateSequence() {
 }
 
 
-void readBodyswitches() {
+void readBodyswitches() {
   bodySwitchesTouched = false;
   for (int i = 0; i<8; i++) {
     
@@ -367,31 +367,31 @@ void readBodyswitches() {
     
     if (reading > averageNoise) { // averageNoise is sampled on startup
       int midiVal = map (reading, averageNoise, maxBodyReading, 0, 127);
-      usbMIDI.sendControlChange(i, constrain(midiVal,0,127), 1);
+//      usbMIDI.sendControlChange(i, constrain(midiVal,0,127), 1);
       bodySwitchVal[i] = constrain(midiVal,0,127);
       bodySwitchesTouched = true;
     } else {
-      usbMIDI.sendControlChange(i, 0, 1);
+//      usbMIDI.sendControlChange(i, 0, 1);
       bodySwitchVal[i] = 0;
       reading = 0;
     }
     seqLedVal[i] = reading*2;
   }
   
-  usbMIDI.sendControlChange(8, averageNoise, 1);
-  usbMIDI.sendControlChange(9, maxBodyReading, 1);
+//  usbMIDI.sendControlChange(8, averageNoise, 1);
+//  usbMIDI.sendControlChange(9, maxBodyReading, 1);
   
   maxBodyReading = maxBodyReading * maxBodyFadeout;
   
   // read potentiometers
-  int reading = analogRead(pot1);
-  usbMIDI.sendControlChange(10, (1023-reading)/8, 1);
-  reading = analogRead(pot2);
-  usbMIDI.sendControlChange(11, (1023-reading)/8, 1);
+//  int reading = analogRead(pot1);
+//  usbMIDI.sendControlChange(10, (1023-reading)/8, 1);
+//  reading = analogRead(pot2);
+//  usbMIDI.sendControlChange(11, (1023-reading)/8, 1);
   
 }
 
-void printFeedback() {
+void printFeedback() {
   for (int i = 0; i<8; i++) {
     int reading = analogRead (bodySwitch[i]);
 
@@ -412,7 +412,7 @@ void printFeedback() {
 
 }
 
-void startupAnimation() {
+void startupAnimation() {
   for (int i = 0; i<8; i++) {
     digitalWrite(seqLed[i],HIGH);
     delay(50);

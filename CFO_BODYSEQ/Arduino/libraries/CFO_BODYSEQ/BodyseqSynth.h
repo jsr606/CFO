@@ -26,6 +26,7 @@
 #include <spi4teensy3.h>
 #include "MCP4251.h"
 #include <EEPROM.h>
+#include <Math.h>
 
 #ifndef Synth_h // include guard
 #define Synth_h
@@ -61,10 +62,10 @@
 #define MUX_B 7
 #define LP6 0
 #define HP6 1
-#define BP6 2
-#define THRU 3
-#define LP24 4
-#define MOOG 5
+#define BP6 4
+#define LP24 2
+#define MOOG 3
+#define THRU 5
 
 // SPI pins
 #define MCP4251_CS 9 // Digital 9
@@ -95,6 +96,13 @@
 #define TAN2 13
 #define TAN3 14
 #define TAN4 15
+
+#define
+
+#define WAVEFORM_TRIANGLE (0 * BIT_16 / 4)
+#define WAVEFORM_SAW (1 * BIT_16 / 4)
+#define WAVEFORM_SQUARE (2 * BIT_16 / 4)
+#define WAVEFORM_ALTERNATE (3 * BIT_16 / 4)
 
 // Maximum possible value for amplification envelope in audio code
 #define MAX_ENV_GAIN 65535
@@ -239,6 +247,7 @@ public:
 	void synthInterrupt8bitFM();
 	void synthInterrupt12bitSine();
 	void synthInterrupt12bitSineFM();
+	void synthInterrupt12bitSawFM();
 	void envelope1();
 	void envelope2();
 	void amplifier();
@@ -248,13 +257,13 @@ public:
 	
 	// FILTER FUNCTIONS
 	void filter();
-	void lowpassFilter();
-	void highpassFilter();
+	void filterLP6dB();
+	void filterHP6dB();
     void filterLP24dB();
     void filterMoogLadder();
 	void setCutoff(uint16_t c);
-	void setResonance(uint8_t res);
-//	void setResonance(int32_t res);
+//	void setResonance(uint8_t res);
+	void setResonance(uint32_t res);
     void setFilterType(uint8_t type);
 	void setCutoffModAmount(int32_t amount);
 	void setCutoffModDirection(int32_t direction);
@@ -262,6 +271,8 @@ public:
 	void setResonanceModSource(uint8_t source);
 	void setCutoffModShape(uint8_t shape);
 	void setResonanceModShape(uint8_t shape);
+
+    void generateFilterCoefficientsMoogLadder();
     
     bool lowpass;
     bool highpass;
@@ -376,6 +387,8 @@ private:
 	bool sine;
 	bool saw;
 	bool square;
+    
+    
 	
 	// FREQUENCY VARIABLES
 	uint16_t frequency16bit;
@@ -411,6 +424,7 @@ private:
 	int64_t modulator1;
 	int64_t modulator2;
 	int64_t modulator3;
+    int64_t waveformVector[5];
 	int32_t fullSignal;
 	int32_t invertSignal;
 	int32_t noSignal;
@@ -442,6 +456,7 @@ private:
     int64_t a2;
     int64_t a3;
     int64_t a4;
+    
     int64_t b0;
     int64_t b1;
     int64_t b2;
@@ -453,13 +468,26 @@ private:
     int64_t x2;
     int64_t x3;
     int64_t x4;
+    
     int64_t y0;
     int64_t y1;
     int64_t y2;
     int64_t y3;
     int64_t y4;
     
-    int64_t k;
+    volatile int64_t u;
+    int64_t g;
+    int64_t gg;
+    int64_t ggg;
+    int64_t G;
+    int64_t Gstage;
+    volatile int64_t S;
+    
+    volatile int64_t k;
+    int64_t v1;
+    int64_t v2;
+    int64_t v3;
+    int64_t v4;
     int64_t z1;
     int64_t z2;
     int64_t z3;
@@ -512,7 +540,7 @@ private:
 	uint8_t notePlayed;
 	
 	// final sample that goes to the DAC
-	int64_t sample;
+	volatile int64_t sample;
     
 	
 	// the two bytes that go to the DAC over SPI for VCF and VCA
