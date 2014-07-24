@@ -97,8 +97,6 @@
 #define TAN3 14
 #define TAN4 15
 
-#define
-
 #define WAVEFORM_TRIANGLE (0 * BIT_16 / 4)
 #define WAVEFORM_SAW (1 * BIT_16 / 4)
 #define WAVEFORM_SQUARE (2 * BIT_16 / 4)
@@ -248,6 +246,8 @@ public:
 	void synthInterrupt12bitSine();
 	void synthInterrupt12bitSineFM();
 	void synthInterrupt12bitSawFM();
+    void phaseDistortionOscillator();
+    
 	void envelope1();
 	void envelope2();
 	void amplifier();
@@ -318,6 +318,16 @@ public:
 	void setWaveform1(uint16_t waveForm);   //
 	void setWaveform2(uint16_t waveForm);   //
 	void setWaveform3(uint16_t waveForm);   //
+    void setPhaseDistortion(uint16_t pd);
+    void setPhaseDistortion1(uint16_t pd);
+    void setPhaseDistortion2(uint16_t pd);
+    void setPhaseDistortion3(uint16_t pd);
+    void setWaveformPosition(uint16_t wp);
+    void setWaveformPosition1(uint16_t wp);
+    void setWaveformPosition2(uint16_t wp);
+    void setWaveformPosition3(uint16_t wp);
+    
+    int64_t vectorOscillator(int64_t phase, uint16_t wf, uint16_t pd);
 	
 	// GAIN FUNCTIONS
 	void setGain(float value); // 0.0 - 1.0          
@@ -384,6 +394,15 @@ private:
 	uint16_t waveForm2;
 	uint16_t waveForm3;
 	uint16_t waveForm;
+    uint16_t waveform;
+    int64_t waveformVector[5];
+    uint16_t phaseDistortion1;
+    uint16_t phaseDistortion2;
+    uint16_t phaseDistortion3;
+    uint16_t waveformPosition1;
+    uint16_t waveformPosition2;
+    uint16_t waveformPosition3;
+//    int16_t waveformVector[8];
 	bool sine;
 	bool saw;
 	bool square;
@@ -415,6 +434,9 @@ private:
 	uint32_t accumulator1;
 	uint32_t accumulator2;
 	uint32_t accumulator3;
+	int32_t vectorAccumulator1;
+	int32_t vectorAccumulator2;
+	int32_t vectorAccumulator3;
 	int32_t index1;
 	int32_t index2;
 	int32_t index3;
@@ -424,7 +446,6 @@ private:
 	int64_t modulator1;
 	int64_t modulator2;
 	int64_t modulator3;
-    int64_t waveformVector[5];
 	int32_t fullSignal;
 	int32_t invertSignal;
 	int32_t noSignal;
@@ -443,6 +464,7 @@ private:
 	int32_t fmOctaves1;
 	int32_t fmOctaves2;
 	int32_t fmOctaves3;
+
 	
 	int32_t gain;
 	int32_t gain1;
