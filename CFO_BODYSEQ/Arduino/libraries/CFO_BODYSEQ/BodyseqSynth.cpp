@@ -353,9 +353,11 @@ int64_t MMusic::vectorOscillator(int64_t phase, uint16_t wp, uint16_t pd)
     int64_t MS;
     int64_t T1;
     int64_t V1;
+    int64_t U1;
     int64_t ME;
     int64_t T2;
     int64_t V2;
+    int64_t U2;
 
     waveform = 0;
     
@@ -366,26 +368,61 @@ int64_t MMusic::vectorOscillator(int64_t phase, uint16_t wp, uint16_t pd)
         M = - (pd << 15);
         MS = S - M;
         T1 = M + (MS >> 1);
-        V1 = ((wp * MS) >> 17) + T1;
+        U1 = ((wp * MS) >> 17) + T1;
+        V1 = U1;
         ME = E - M;
         T2 = M + (ME >> 1);
-        V2 = ((wp * ME) >> 17) + T2;
+        U2 = ((wp * ME) >> 17) + T2;
+        V2 = U2;
+    }
+    else if(waveform < WAVEFORM_SQUARE) {
+        
+        S = -(BIT_32 >> 1);
+        E = (BIT_32 >> 1) -1;
+        M = - (pd << 15);
+        MS = S - M;
+//        T1 = M + (MS >> 1);
+        U1 = S;
+        V1 = S - ((wp * MS) >> 16);
+        ME = E - M;
+//        T2 = M + (ME >> 1);
+        U2 = E - ((wp * ME) >> 16);
+        V2 = E;
+        
+//        S = -(BIT_32 >> 1);
+//        E = (BIT_32 >> 1) -1;
+//        M = - (pd << 15);
+//        MS = S - M;
+//        T1 = M + (MS >> 1);
+//        V1 = ((wp * MS) >> 17) + T1;
+//        U1 = V1;
+//        ME = E - M;
+//        T2 = M + (ME >> 1);
+//        V2 = ((wp * ME) >> 17) + T2;
+//        U2 = V2;
+        
     }
     
-    if(phase < V1) {
+    if(phase < U1) {
         vectorOut = ((phase - S) << 16) / (V1 - S);
 //        vectorOut = 0;
+    }
+    else if(phase < V1) {
+        vectorOut = (BIT_16 >> 1) - 1;
     }
     else if(phase < M) {
         vectorOut = ((phase - M) << 16) / (V1 - M);
 //        vectorOut = 0;
     }
-    else if(phase < V2) {
-        vectorOut = ((phase - M) << 16) / (M - V2);
+    else if(phase < U2) {
+        vectorOut = -((phase - M) << 16) / (V2 - M);
 //        vectorOut = 0;
     }
+    else if(phase < V2) {
+        vectorOut = -(BIT_16 >> 1);
+    }
     else if(phase < E) {
-        vectorOut = ((phase - E) << 16) / (E - V2);
+        vectorOut = -((phase - E) << 16) / (V2 - E);
 //        vectorOut = 0;
     }
     return vectorOut >> 1;
