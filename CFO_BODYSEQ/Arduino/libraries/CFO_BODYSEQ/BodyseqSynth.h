@@ -97,10 +97,10 @@
 #define TAN3 14
 #define TAN4 15
 
-#define WAVEFORM_TRIANGLE (0 * BIT_16 / 4)
-#define WAVEFORM_SAW (1 * BIT_16 / 4)
-#define WAVEFORM_SQUARE (2 * BIT_16 / 4)
-#define WAVEFORM_ALTERNATE (3 * BIT_16 / 4)
+#define WAVEFORM_TRIANGLE 0
+#define WAVEFORM_SAW 1
+#define WAVEFORM_SQUARE 2
+#define WAVEFORM_ALTERNATE 3
 
 // Maximum possible value for amplification envelope in audio code
 #define MAX_ENV_GAIN 65535
@@ -322,12 +322,12 @@ public:
     void setPhaseDistortion1(uint16_t pd);
     void setPhaseDistortion2(uint16_t pd);
     void setPhaseDistortion3(uint16_t pd);
-    void setWaveformPosition(uint16_t wp);
-    void setWaveformPosition1(uint16_t wp);
-    void setWaveformPosition2(uint16_t wp);
-    void setWaveformPosition3(uint16_t wp);
+    void setWaveformPosition(uint32_t wp);
+    void setWaveformPosition1(uint32_t wp);
+    void setWaveformPosition2(uint32_t wp);
+    void setWaveformPosition3(uint32_t wp);
     
-    int64_t vectorOscillator(int64_t phase, uint16_t wf, uint16_t pd);
+    int64_t vectorOscillator(int64_t phase, uint32_t wp, uint16_t pd);
 	
 	// GAIN FUNCTIONS
 	void setGain(float value); // 0.0 - 1.0          
@@ -399,9 +399,9 @@ private:
     uint16_t phaseDistortion1;
     uint16_t phaseDistortion2;
     uint16_t phaseDistortion3;
-    uint16_t waveformPosition1;
-    uint16_t waveformPosition2;
-    uint16_t waveformPosition3;
+    uint32_t waveformPosition1;
+    uint32_t waveformPosition2;
+    uint32_t waveformPosition3;
 //    int16_t waveformVector[8];
 	bool sine;
 	bool saw;

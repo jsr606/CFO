@@ -126,8 +126,8 @@ void synth_isr(void) {
 	
 	Music.envelope1();
 	Music.envelope2();
-    if(Music.is12bit) Music.synthInterrupt12bitSineFM();
-//	if(Music.is12bit) Music.phaseDistortionOscillator();
+//    if(Music.is12bit) Music.synthInterrupt12bitSineFM();
+	if(Music.is12bit) Music.phaseDistortionOscillator();
 //  if(Music.is12bit) Music.synthInterrupt12bitSawFM();
 	else Music.synthInterrupt8bitFM();
 		
@@ -343,7 +343,7 @@ void MMusic::phaseDistortionOscillator()
  	
 }
 
-int64_t MMusic::vectorOscillator(int64_t phase, uint16_t wp, uint16_t pd)
+int64_t MMusic::vectorOscillator(int64_t phase, uint32_t wp, uint16_t pd)
 {
     
     int64_t vectorOut;
@@ -359,8 +359,9 @@ int64_t MMusic::vectorOscillator(int64_t phase, uint16_t wp, uint16_t pd)
     int64_t V2;
     int64_t U2;
 
-    waveform = 0;
-    
+    waveform = wp / BIT_16;
+    wp = wp % BIT_16;
+//    waveform = 1;
     if(waveform < WAVEFORM_SAW) {
         
         S = -(BIT_32 >> 1);
@@ -377,17 +378,31 @@ int64_t MMusic::vectorOscillator(int64_t phase, uint16_t wp, uint16_t pd)
     }
     else if(waveform < WAVEFORM_SQUARE) {
         
+//        S = -(BIT_32 >> 1);
+//        E = (BIT_32 >> 1) -1;
+//        M = - (pd << 15);
+//        MS = S - M;
+////        T1 = M + (MS >> 1);
+//        U1 = S;
+//        V1 = S - ((wp * MS) >> 16);
+//        ME = E - M;
+////        T2 = M + (ME >> 1);
+//        U2 = E - ((wp * ME) >> 16);
+//        V2 = E;
+
+//////////// Super Glitchy
         S = -(BIT_32 >> 1);
         E = (BIT_32 >> 1) -1;
         M = - (pd << 15);
         MS = S - M;
-//        T1 = M + (MS >> 1);
+        //        T1 = M + (MS >> 1);
         U1 = S;
         V1 = S - ((wp * MS) >> 16);
         ME = E - M;
-//        T2 = M + (ME >> 1);
-        U2 = E - ((wp * ME) >> 16);
-        V2 = E;
+        //        T2 = M + (ME >> 1);
+        //        U2 = E - ((wp * ME) >> 16);
+        V2 = E - ((wp * ME) >> 16);
+        U2 = E;
         
 //        S = -(BIT_32 >> 1);
 //        E = (BIT_32 >> 1) -1;
@@ -408,18 +423,18 @@ int64_t MMusic::vectorOscillator(int64_t phase, uint16_t wp, uint16_t pd)
 //        vectorOut = 0;
     }
     else if(phase < V1) {
-        vectorOut = (BIT_16 >> 1) - 1;
+        vectorOut = BIT_16 - 1;
     }
     else if(phase < M) {
         vectorOut = ((phase - M) << 16) / (V1 - M);
 //        vectorOut = 0;
     }
-    else if(phase < U2) {
+    else if(phase < V2) {
         vectorOut = -((phase - M) << 16) / (V2 - M);
 //        vectorOut = 0;
     }
-    else if(phase < V2) {
-        vectorOut = -(BIT_16 >> 1);
+    else if(phase < U2) {
+        vectorOut = -BIT_16;
     }
     else if(phase < E) {
         vectorOut = -((phase - E) << 16) / (V2 - E);
@@ -462,25 +477,25 @@ void MMusic::setPhaseDistortion(uint16_t pd)
 }
 
 
-void MMusic::setWaveformPosition1(uint16_t wp)
+void MMusic::setWaveformPosition1(uint32_t wp)
 {
     waveformPosition1 = wp;
 }
 
 
-void MMusic::setWaveformPosition2(uint16_t wp)
+void MMusic::setWaveformPosition2(uint32_t wp)
 {
     waveformPosition2 = wp;
 }
 
 
-void MMusic::setWaveformPosition3(uint16_t wp)
+void MMusic::setWaveformPosition3(uint32_t wp)
 {
     waveformPosition3 = wp;
 }
 
 
-void MMusic::setWaveformPosition(uint16_t wp)
+void MMusic::setWaveformPosition(uint32_t wp)
 {
     waveformPosition1 = wp;
     waveformPosition2 = wp;
