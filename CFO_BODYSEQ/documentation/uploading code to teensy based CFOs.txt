@@ -1,0 +1,5 @@
+notes on uploading code to teensy based CFOs
+
+in arduino:
+board should be set to "Teensy 3.1"
+CPU speed should be set to "96 MHz (overclock)"
