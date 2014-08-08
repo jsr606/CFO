@@ -56,6 +56,7 @@ const uint8_t programPresets[] = {
 
 
 int64_t filterSamplesLP24dB[4];
+int64_t filterSamplesHP24dB[8];
 int64_t filterSamplesMoogLadder[4];
 
 const int64_t filterCoefficient[] = {
@@ -126,8 +127,8 @@ void synth_isr(void) {
 	
 	Music.envelope1();
 	Music.envelope2();
-//    if(Music.is12bit) Music.synthInterrupt12bitSineFM();
-	if(Music.is12bit) Music.phaseDistortionOscillator();
+    if(Music.is12bit) Music.synthInterrupt12bitSineFM();
+//	if(Music.is12bit) Music.phaseDistortionOscillator();
 //  if(Music.is12bit) Music.synthInterrupt12bitSawFM();
 	else Music.synthInterrupt8bitFM();
 		
@@ -136,6 +137,7 @@ void synth_isr(void) {
 	if(Music.lowpass) Music.filterLP6dB();
 	if(Music.highpass) Music.filterHP6dB();
     if(Music.lowpass24dB) Music.filterLP24dB();
+    if(Music.highpass24dB) Music.filterHP24dB();
     if(Music.moogLadder) Music.filterMoogLadder();
 
 }
@@ -990,6 +992,7 @@ void MMusic::setCutoff(uint16_t c)
 //        Serial.println(filterCoefficientsMoogLadderFloat[6][i],16);
 //    }
 //    Serial.println("NEWLINE");
+    Serial.println(c>>8);
 
 }
 
@@ -1040,11 +1043,31 @@ void MMusic::filterLP24dB() {
 	else if(c < 0) c = 0;
     //	c = ((((c * 32768) >> 15) + 65536) >> 1);
     
+    int fc = c>>8;
+//    if(fc > 220) fc = 220;
     
-    b1 = filterCoefficient[c>>8];
+    b1 = filterCoefficient[fc];
     a0 = BIT_32 - b1;
     
-    x0 = sample;
+//    int64_t res = resonance - (c >> 1);
+//    k = resonance >> 12;
+//    x0 = sample + feedbackSample * k;
+//    x0 = sample + ((feedbackSample * resonance) >> 12);
+//    feedbackSample =
+    x0 = (sample << 12) + (feedbackSample * resonance);
+    x0 >>= 12;
+//    x0 += 32768;
+    if(x0 > 30735) {
+        x0 = (((x0 - 30735) * 4098) >> 16) + 30735;
+    }
+    else if(x0 < -30735) {
+        x0 = (((x0 + 30735) * 4098) >> 16) - 30735;
+    }
+//    x0 -= 32768;
+//    x0 = x0 / (4096 + resonance);
+    if(x0 > MAX_SAMPLE) x0 = MAX_SAMPLE;
+    else if(x0 < MIN_SAMPLE) x0 = MIN_SAMPLE;
+    
     y1 = filterSamplesLP24dB[0];
     y2 = filterSamplesLP24dB[1];
     y3 = filterSamplesLP24dB[2];
@@ -1061,51 +1084,110 @@ void MMusic::filterLP24dB() {
     filterSamplesLP24dB[3] = y4;
     
     sample = y4;
-
+    
+    // Feedback of LP output through HP
+    
+    a0 = (BIT_32 + b1) >> 1;
+    a1 = -a0;
+    
+    xNew = sample;
+    xOld = filterSamplesHP24dB[0];
+    yOld = filterSamplesHP24dB[4];
+    yNew = (a0 * xNew + a1 * xOld + b1 * yOld) >> 32;
+    x1 = xNew;
+    y1 = yNew;
+    
+    xNew = y1;
+    xOld = filterSamplesHP24dB[1];
+    yOld = filterSamplesHP24dB[5];
+    yNew = (a0 * xNew + a1 * xOld + b1 * yOld) >> 32;
+    x2 = xNew;
+    y2 = yNew;
+    
+    xNew = y2;
+    xOld = filterSamplesHP24dB[2];
+    yOld = filterSamplesHP24dB[6];
+    yNew = (a0 * xNew + a1 * xOld + b1 * yOld) >> 32;
+    x3 = xNew;
+    y3 = yNew;
+    
+    xNew = y3;
+    xOld = filterSamplesHP24dB[3];
+    yOld = filterSamplesHP24dB[7];
+    yNew = (a0 * xNew + a1 * xOld + b1 * yOld) >> 32;
+    x4 = xNew;
+    y4 = yNew;
+    
+    filterSamplesHP24dB[0] = x1;
+    filterSamplesHP24dB[1] = x2;
+    filterSamplesHP24dB[2] = x3;
+    filterSamplesHP24dB[3] = x4;
+    
+    filterSamplesHP24dB[4] = y1;
+    filterSamplesHP24dB[5] = y2;
+    filterSamplesHP24dB[6] = y3;
+    filterSamplesHP24dB[7] = y4;
+    
+    feedbackSample = y4;
 }
 
 
-/*
-void MMusic::filterLP24dB() {
+
+void MMusic::filterHP24dB() {
 
     int64_t mod = (int64_t(cutoffModAmount) * (int64_t(*cutoffModSource_ptr)))>>16;
-	int64_t c = (mod + int64_t(cutoff));
-	if(c > 65535) c = 65535;
-	else if(c < 0) c = 0;
+    int64_t c = (mod + int64_t(cutoff));
+    if(c > 65535) c = 65535;
+    else if(c < 0) c = 0;
     //	c = ((((c * 32768) >> 15) + 65536) >> 1);
+
+
+    b1 = filterCoefficient[c>>8];
+    a0 = (BIT_32 + b1) >> 1;
+    a1 = -a0;
+
+    xNew = sample;
+    xOld = filterSamplesHP24dB[0];
+    yOld = filterSamplesHP24dB[4];
+    yNew = (a0 * xNew + a1 * xOld + b1 * yOld) >> 32;
+    x1 = xNew;
+    y1 = yNew;
     
-    a0 = filterCoefficientsLP24dB[c>>8];
-    b1 = filterCoefficientsLP24dB[256 + (c>>8)];
-    b2 = filterCoefficientsLP24dB[512 + (c>>8)];
-    b3 = filterCoefficientsLP24dB[768 + (c>>8)];
-    b4 = filterCoefficientsLP24dB[1024 + (c>>8)];
+    xNew = y1;
+    xOld = filterSamplesHP24dB[1];
+    yOld = filterSamplesHP24dB[5];
+    yNew = (a0 * xNew + a1 * xOld + b1 * yOld) >> 32;
+    x2 = xNew;
+    y2 = yNew;
+
+    xNew = y2;
+    xOld = filterSamplesHP24dB[2];
+    yOld = filterSamplesHP24dB[6];
+    yNew = (a0 * xNew + a1 * xOld + b1 * yOld) >> 32;
+    x3 = xNew;
+    y3 = yNew;
     
-    x0 = sample;
-    y1 = filterSamplesLP24dB[0];
-    y2 = filterSamplesLP24dB[1];
-    y3 = filterSamplesLP24dB[2];
-    y4 = filterSamplesLP24dB[3];
+    xNew = y3;
+    xOld = filterSamplesHP24dB[3];
+    yOld = filterSamplesHP24dB[7];
+    yNew = (a0 * xNew + a1 * xOld + b1 * yOld) >> 32;
+    x4 = xNew;
+    y4 = yNew;
+
+    filterSamplesHP24dB[0] = x1;
+    filterSamplesHP24dB[1] = x2;
+    filterSamplesHP24dB[2] = x3;
+    filterSamplesHP24dB[3] = x4;
     
-    y0 = (a0 * x0) >> 32;
-    y0 += (b1 * y1) >> 32;
-    y0 += (b2 * y2) >> 32;
-    y0 += (b3 * y3) >> 32;
-    y0 += (b4 * y4) >> 32;
-    
-//    y0 =  int64_t(filterCoefficientsLP24dB[c>>8] * float(x0));
-//    y0 += int64_t(filterCoefficientsLP24dB[256 + (c>>8)] * float(y1));
-//    y0 += int64_t(filterCoefficientsLP24dB[512 + (c>>8)] * float(y2));
-//    y0 += int64_t(filterCoefficientsLP24dB[768 + (c>>8)] * float(y3));
-//    y0 += int64_t(filterCoefficientsLP24dB[1024 + (c>>8)] * float(y4));
-    
-    sample = y0;
-    filterSamplesLP24dB[0] = y0;
-    filterSamplesLP24dB[1] = y1;
-    filterSamplesLP24dB[2] = y2;
-    filterSamplesLP24dB[3] = y3;
+    filterSamplesHP24dB[4] = y1;
+    filterSamplesHP24dB[5] = y2;
+    filterSamplesHP24dB[6] = y3;
+    filterSamplesHP24dB[7] = y4;
+
+    sample = y4;
 
 }
-*/
+
 
 void MMusic::filterMoogLadder() {
     
@@ -1215,36 +1297,56 @@ void MMusic::setFilterType(uint8_t type) {
             lowpass = true;
             highpass = false;
             lowpass24dB = false;
+            highpass24dB = false;
             moogLadder = false;
             break;
         case HP6:
             lowpass = false;
             highpass = true;
             lowpass24dB = false;
+            highpass24dB = false;
             moogLadder = false;
             break;
         case BP6:
             lowpass = true;
             highpass = true;
             lowpass24dB = false;
+            highpass24dB = false;
             moogLadder = false;
             break;
         case THRU:
             lowpass = false;
             highpass = false;
             lowpass24dB = false;
+            highpass24dB = false;
             moogLadder = false;
             break;
         case LP24:
             lowpass = false;
             highpass = false;
             lowpass24dB = true;
+            highpass24dB = false;
+            moogLadder = false;
+            break;
+        case HP24:
+            lowpass = false;
+            highpass = false;
+            lowpass24dB = false;
+            highpass24dB = true;
+            moogLadder = false;
+            break;
+        case BP24:
+            lowpass = false;
+            highpass = false;
+            lowpass24dB = true;
+            highpass24dB = true;
             moogLadder = false;
             break;
         case MOOG:
             lowpass = false;
             highpass = false;
             lowpass24dB = false;
+            highpass24dB = false;
             moogLadder = true;
             break;
         default:

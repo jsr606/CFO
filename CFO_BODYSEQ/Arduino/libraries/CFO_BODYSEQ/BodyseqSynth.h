@@ -39,6 +39,8 @@
 #define BIT_24 16777216
 #define BIT_28 268435456
 #define BIT_32 4294967296
+#define MAX_SAMPLE 32767
+#define MIN_SAMPLE -32768
 
 // Constants for bitvalues within the TCTRL1 register
 #define TIE 2
@@ -60,12 +62,15 @@
 // Multiplexer Pins (CD4052)
 #define MUX_A 8
 #define MUX_B 7
-#define LP6 0
-#define HP6 1
-#define BP6 4
-#define LP24 2
+
+#define LP6 4
+#define HP6 5
+#define BP6 2
+#define LP24 0
+#define HP24 1
+#define BP24 6
 #define MOOG 3
-#define THRU 5
+#define THRU 8
 
 // SPI pins
 #define MCP4251_CS 9 // Digital 9
@@ -260,6 +265,7 @@ public:
 	void filterLP6dB();
 	void filterHP6dB();
     void filterLP24dB();
+    void filterHP24dB();
     void filterMoogLadder();
 	void setCutoff(uint16_t c);
 //	void setResonance(uint8_t res);
@@ -277,6 +283,7 @@ public:
     bool lowpass;
     bool highpass;
     bool lowpass24dB;
+    bool highpass24dB;
     bool moogLadder;
 
 
@@ -497,6 +504,12 @@ private:
     int64_t y3;
     int64_t y4;
     
+    int64_t xNew;
+    int64_t xOld;
+    int64_t yNew;
+    int64_t yOld;
+    int64_t feedbackSample;
+    
     volatile int64_t u;
     int64_t g;
     int64_t gg;
@@ -516,7 +529,7 @@ private:
     int64_t z4;
 	
     uint16_t cutoff;
-	int32_t resonance;
+	uint32_t resonance;
     
 	int32_t cutoffModAmount;
 	int32_t cutoffModDirection;

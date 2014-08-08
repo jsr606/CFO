@@ -1,7 +1,7 @@
   // The Music object is automatically instantiated when the header file is
 // included. Make calls to the Music objects with "Music.function(args)".
 // You still need to call Music.init() in the setup() function below.
-#include <SoftPWM.h>
+//#include <SoftPWM.h>
 
 #define MIDI_CHANNEL 1
 
@@ -85,7 +85,7 @@ void setup() {
   pinMode(button2, INPUT_PULLUP);
   pinMode(button3, INPUT_PULLUP);
   
-  SoftPWMBegin();
+//  SoftPWMBegin();
   
   newActiveScale(scaleLength);
   
