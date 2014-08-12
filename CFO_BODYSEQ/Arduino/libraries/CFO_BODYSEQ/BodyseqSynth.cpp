@@ -117,7 +117,7 @@ void MMusic::generateFilterCoefficientsMoogLadder() {
 
 //////////////////////////////////////////////////////////
 //
-// SYNTH INTERRUPT - The pre-processor selects 8 or 12 bit
+// SYNTH INTERRUPT
 //
 //////////////////////////////////////////////////////////
 
@@ -2100,6 +2100,19 @@ void MMusic::setEnv2VelPeak(uint8_t vel)
 }
 
 
+uint8_t commandFlags[128];
+
+
+void MMusic::commandFlags(uint8_t value)
+{
+    switch(value) {
+        case SEQ_STEP_FORWARD:
+            
+            break;
+            
+    }
+}
+
 
 /////////////////////////////////////
 //
@@ -2157,6 +2170,32 @@ void MMidi::checkSerialMidi()
 			}
 		}
 	}	
+}
+
+
+void MMidi::sendNoteOff(uint8_t note) {
+    
+    MIDI_SERIAL.write(0x80 | midiChannel);
+    MIDI_SERIAL.write(byte(note));
+    MIDI_SERIAL.write(0x00);
+    
+}
+
+
+void MMidi::sendNoteOn(uint8_t note, uint8_t vel) {
+    
+    MIDI_SERIAL.write(0x90 | midiChannel);
+    MIDI_SERIAL.write(byte(note));
+    MIDI_SERIAL.write(byte(vel));
+    
+}
+
+void MMidi::sendController(uint8_t number, uint8_t value) {
+    
+    MIDI_SERIAL.write(0xB0 | midiChannel);
+    MIDI_SERIAL.write(byte(number));
+    MIDI_SERIAL.write(byte(value));
+    
 }
 
 
@@ -2260,7 +2299,7 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			Music.setCutoff(value * 512);
 			break;			
 		case RESONANCE:
-			Music.setResonance(value * 2);
+			Music.setResonance(value * 512);
 			break;			
 		case FILTER_TYPE:
 			Music.setFilterType(value);
@@ -2472,6 +2511,9 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 		case PRESET_RECALL:
 			Music.getPreset(value);
 			Music.sendInstrument();
+			break;
+		case CFO_COMMAND:
+			Music.commandFlags(value);
 			break;
 		default:
 			break;

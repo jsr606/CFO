@@ -116,12 +116,12 @@
 #define MIDI_SERIAL Serial1
 #define MIDI_THROUGH true
 
-//#ifndef MIDI_CHANNEL
-//	#define MIDI_CHANNEL 2
-//#elif (MIDI_CHANNEL > 0)&&(MIDI_CHANNEL < 17)
-//#else
-//	#error MIDI_CHANNEL should be between 1 - 16
-//#endif
+#ifndef MIDI_CHANNEL
+	#define MIDI_CHANNEL 1
+#elif (MIDI_CHANNEL > 0)&&(MIDI_CHANNEL < 17)
+#else
+	#error MIDI_CHANNEL should be between 1 - 16
+#endif
 
 // parameters for modulation
 #define MOD_FULL 0
@@ -204,6 +204,10 @@
 #define SEQ_BPM 86
 #define SEQ_SYNC 87
 #define SEQ_ON 88
+
+#define CFO_COMMAND 90
+#define SEQ_STEP_FORWARD 0
+
 
 #define ENV0_VELOCITY 102
 #define ENV0_ENABLE 103
@@ -352,7 +356,7 @@ public:
 	void noteOff(uint8_t note); // 0 - 127
 	void noteOff();
 	float getNoteFrequency(uint8_t note); // 0 - 127
-	
+    
 	// ENVELOPE FUNCTIONS
 	void enableEnvelope1();
 	void disableEnvelope1();
@@ -373,6 +377,9 @@ public:
 	void setEnv2Release(uint8_t rel); // 0 - 127             
 	void setEnv2VelSustain(uint8_t vel); // 0 - 127
 	void setEnv2VelPeak(uint8_t vel); // 0 - 127
+    
+    
+    void commandFlags(uint8_t value0);
 		
 	bool osc1LFO;
 	bool osc2LFO;
@@ -610,6 +617,10 @@ public:
 	void pitchWheel(uint8_t channel, uint8_t highBits, uint8_t lowBits);
 	void pitchChange(uint8_t channel, int pitch); // extra pitchWheel function for USB MIDI interfacing
 
+    void sendNoteOff(uint8_t note);
+    void sendNoteOn(uint8_t note, uint8_t vel);
+    void sendController(uint8_t number, uint8_t value);
+    
 	uint8_t midiChannel;
 
 private:

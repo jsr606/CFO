@@ -1,8 +1,3 @@
-  // The Music object is automatically instantiated when the header file is
-// included. Make calls to the Music objects with "Music.function(args)".
-// You still need to call Music.init() in the setup() function below.
-//#include <SoftPWM.h>
-
 #define MIDI_CHANNEL 1
 
 #include <spi4teensy3.h>
@@ -176,8 +171,10 @@ void loop() {
     case 7:
       // change sequencer time mode
       
-      Music.setCutoff((analogRead(pot1))*64);
-      Music.setCutoffModAmount((analogRead(pot2))*64);
+//      Music.setCutoff((analogRead(pot1))*64);
+//      Music.setCutoffModAmount((analogRead(pot2))*64);
+      Music.setCutoffModAmount((analogRead(pot1))*64);
+      Music.setResonance((analogRead(pot2))*64);
     
       if (sequencerRunning) updateSequence();
       if (buttonPress1) {
@@ -204,8 +201,10 @@ void sampleAverageNoise() {
 }
 
 void setCutoffFromPots() {
-  Music.setCutoff((analogRead(pot1))*64);
-  Music.setCutoffModAmount((analogRead(pot2))*64);
+//  Music.setCutoff((analogRead(pot1))*64);
+//  Music.setCutoffModAmount((analogRead(pot2))*64);
+  Music.setCutoffModAmount((analogRead(pot1))*64);
+  Music.setResonance((analogRead(pot2))*64);
 }
 
 void updateLEDs() {
@@ -345,13 +344,10 @@ void updateSequence() {
     //SoftPWMSet(seqLed[seqStep], 255);
     seqStep++;
     if (seqStep > seqEnd) seqStep = seqStart;
-
+    
     int note = activeSeq*8+seqStep;  
     if (seqNote[note] != -1) {
       Music.noteOn(baseNote+seqNote[note]);
-    }
-    else {
-//      Music.noteOff();
     }
     
     lastStep = millis();
@@ -385,8 +381,8 @@ void readBodyswitches() {
     }
     seqLedVal[i] = reading*2;
   }
-    
-  maxBodyReading = maxBodyReading * maxBodyFadeout;  
+  
+  maxBodyReading = maxBodyReading * maxBodyFadeout;
 }
 
 void printFeedback() {
@@ -441,7 +437,6 @@ void readButtons() {
       buttonPress1 = false;
     }
   }
-  
   if (digitalRead(button2) == HIGH) { // active low
     if (buttonPress2 == true) {
       // button has been released
@@ -450,7 +445,6 @@ void readButtons() {
       buttonPress2 = false;
     }
   }
-
   if (digitalRead(button3) == HIGH) { // active low
     if (buttonPress3 == true) {
       // button has been released
