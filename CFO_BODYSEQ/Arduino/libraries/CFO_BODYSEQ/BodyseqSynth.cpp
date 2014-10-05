@@ -992,7 +992,7 @@ void MMusic::setCutoff(uint16_t c)
 //        Serial.println(filterCoefficientsMoogLadderFloat[6][i],16);
 //    }
 //    Serial.println("NEWLINE");
-    Serial.println(c>>8);
+//    Serial.println(c>>8);
 
 }
 
