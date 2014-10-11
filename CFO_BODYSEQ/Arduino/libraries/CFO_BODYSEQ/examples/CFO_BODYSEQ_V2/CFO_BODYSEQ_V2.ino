@@ -97,6 +97,12 @@ void loop() {
   
   // check for incoming USB MIDI messages
   usbMIDI.read();
+  
+  if(Music.checkCommandFlag(SEQ_STEP_FORWARD)) {
+    Music.clearCommandFlag(SEQ_STEP_FORWARD);
+    externalUpdateSequence();  
+  }
+  
 
 
   if (lastInput + inputFreq < millis()) {
@@ -176,12 +182,18 @@ void loop() {
     case 7:
       // change sequencer time mode
       
-      Music.setCutoff((analogRead(pot1))*64);
-      Music.setCutoffModAmount((analogRead(pot2))*64);
+//      Music.setCutoff((analogRead(pot1))*64);
+      Music.setCutoffModAmount((analogRead(pot1))*64);
+      Music.setResonance((analogRead(pot2))*64);
     
       if (sequencerRunning) updateSequence();
       if (buttonPress1) {
         stepTime = analogRead(pot2)/2;
+        if(stepTime > 500) {
+          sequencerRunning = false;
+        } else {
+          sequencerRunning = true;
+        }
       }
       
       break;
@@ -204,8 +216,9 @@ void sampleAverageNoise() {
 }
 
 void setCutoffFromPots() {
-  Music.setCutoff((analogRead(pot1))*64);
-  Music.setCutoffModAmount((analogRead(pot2))*64);
+//  Music.setCutoff((analogRead(pot1))*64);
+  Music.setCutoffModAmount((analogRead(pot1))*64);
+  Music.setResonance((analogRead(pot2))*64);
 }
 
 void updateLEDs() {
@@ -330,12 +343,25 @@ void changeMode() {
 }
 
 void changePreset() {
-  int newPreset = map(1023-analogRead(pot2),0,1023,0,32);
+  int newPreset = map(analogRead(pot2),0,1023,0,32);
   if (preset != newPreset) { // only do something if preset has changed
     preset = newPreset;
     Music.getPreset(preset);
   }
 }
+
+void externalUpdateSequence() {
+  seqStep++;
+  if (seqStep > seqEnd) seqStep = seqStart;
+  
+  int note = activeSeq*8+seqStep;  
+  if (seqNote[note] != -1) {
+    Music.noteOn(baseNote+seqNote[note]);
+  }
+  else {
+  //      Music.noteOff();
+  }
+ }
 
 
 
@@ -349,6 +375,7 @@ void updateSequence() {
     int note = activeSeq*8+seqStep;  
     if (seqNote[note] != -1) {
       Music.noteOn(baseNote+seqNote[note]);
+      Midi.sendStep();
     }
     else {
 //      Music.noteOff();

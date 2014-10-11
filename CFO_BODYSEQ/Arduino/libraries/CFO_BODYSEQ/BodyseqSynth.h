@@ -259,6 +259,7 @@ public:
     
 	void envelope1();
 	void envelope2();
+    void envelopeRC();
 	void amplifier();
 	void sendToDAC(); // sending both sound and cutoff
 	void output2DAC(); // sending only sound
@@ -379,7 +380,9 @@ public:
 	void setEnv2VelPeak(uint8_t vel); // 0 - 127
     
     
-    void commandFlags(uint8_t value0);
+    void setCommandFlag(uint8_t flag);
+    void clearCommandFlag(uint8_t flag);
+    bool checkCommandFlag(uint8_t flag);
 		
 	bool osc1LFO;
 	bool osc2LFO;
@@ -566,6 +569,7 @@ private:
 	int32_t release1;
 	int32_t velSustain1;
 	int32_t velPeak1;
+    int32_t envTarget;
 
 	bool envelopeOn2;
 	int32_t env2;
@@ -620,6 +624,8 @@ public:
     void sendNoteOff(uint8_t note);
     void sendNoteOn(uint8_t note, uint8_t vel);
     void sendController(uint8_t number, uint8_t value);
+    
+    void sendStep();
     
 	uint8_t midiChannel;
 

@@ -48,6 +48,8 @@ uint8_t sequencer[128];
 uint8_t instrument[128];
 uint8_t userPresets[MAX_PRESETS][PRESET_SIZE];
 
+bool commandFlags[128];
+
 
 const uint8_t programPresets[] = {
 #include <HaarnetPresets.h>
@@ -123,7 +125,8 @@ void MMusic::generateFilterCoefficientsMoogLadder() {
 
 void synth_isr(void) {
 
-    Music.output2T3DAC();
+//    Music.output2T3DAC();
+    Music.output2DAC();
 	
 	Music.envelope1();
 	Music.envelope2();
@@ -614,6 +617,71 @@ void MMusic::envelope2() {
 }
 
 
+
+//void MMusic::envelopeRC() {
+//    
+//    
+//	
+//	if(envelopeOn2) {
+//        
+//        uint32_t b1 = filterCoefficient[c>>8];
+//        uint32_t a0 = BIT_32 - b1;
+//        
+//		// Attack
+//		if(env2Stage == 1) {
+////			env2 += 1; // to make sure the envelope increases when (MAX_ENV_GAIN-env2) is smaller than attack1
+////			env2 += (MAX_ENV_GAIN-env2)/attack2;
+//            envTarget = velPeak2;
+//
+//			if(velPeak2 < env2) {
+//				env2 = velPeak2;
+//				env2Stage = 2;
+//			}
+//		}
+//		// Decay
+//		else if(env2Stage == 2) {
+////			env2 += -1;	// to make sure the envelope decreases when (velSustain2-env2) is smaller than decay2
+////			env2 += (velSustain2-env2)/decay2;
+//            envTarget = velSustain2;
+//			if(env2 < velSustain2 || MAX_ENV_GAIN < env2) {
+//				env2 = velSustain2;
+//				env2Stage = 3;
+//			}
+//		}
+//		// Sustain
+//		else if (env2Stage == 3) {
+//			env2 = velSustain2;
+//		}
+//        
+//		// Release
+//		else if (env2Stage == 4) {
+////			env2 += -1; // to make sure the envelope decreases when (0-env2) is smaller than release2
+////			env2 += (0 - env2) / release2;
+//            envTarget = 0;
+//			if(env2 < 0 || MAX_ENV_GAIN < env2) {
+//				env2 = 0;
+//				env2Stage = 0;
+//			}
+//		}
+//        
+//		// No gain
+//		else if (env2Stage == 0) {
+//			env2 = 0;
+//			//accumulator1 = 0;
+//			//accumulator2 = 0;
+//			//accumulator3 = 0;
+//            return;
+//		}
+//        
+//        env2 = (a0 * envTarget + b1 * env2) >> 32;
+//        
+//	} else {
+//		env2 = 65535;
+//	}
+//    
+//}
+
+
 void MMusic::amplifier() {
 	
 	sample = (env1 * sample) >> 16;
@@ -648,6 +716,7 @@ void MMusic::output2DAC() {
 	//	while(SPI.transfer(dacSPIB1));
 	digitalWriteFast(DAC_CS, HIGH);
 }
+
 
 
 
@@ -1953,7 +2022,7 @@ void MMusic::noteOn(uint8_t note)
 
 void MMusic::noteOff(uint8_t note)
 {	
-	if(notePlayed == note) {
+	if(notePlayed = note) {
 		env1Stage = 4;
 		env2Stage = 4;
 	}    
@@ -2100,18 +2169,47 @@ void MMusic::setEnv2VelPeak(uint8_t vel)
 }
 
 
-uint8_t commandFlags[128];
-
-
-void MMusic::commandFlags(uint8_t value)
+void MMusic::setCommandFlag(uint8_t flag)
 {
-    switch(value) {
-        case SEQ_STEP_FORWARD:
-            
-            break;
-            
-    }
+    commandFlags[flag] = 1;
+//    switch(flag) {
+//        case SEQ_STEP_FORWARD:
+//            commandFlags[SEQ_STEP_FORWARD] = 1;
+//            break;
+//        default:
+//            break;
+//            
+//    }
 }
+
+
+void MMusic::clearCommandFlag(uint8_t flag)
+{
+    commandFlags[flag] = 0;
+//    switch(flag) {
+//        case SEQ_STEP_FORWARD:
+//            commandFlags[SEQ_STEP_FORWARD] = 0;
+//            break;
+//        default:
+//            break;
+//            
+//    }
+}
+
+
+bool MMusic::checkCommandFlag(uint8_t flag)
+{
+    return commandFlags[flag];
+//    switch(flag) {
+//        case SEQ_STEP_FORWARD:
+//            return commandFlags[SEQ_STEP_FORWARD];
+//            break;
+//        default:
+//            break;
+//            
+//    }
+}
+
 
 
 /////////////////////////////////////
@@ -2195,6 +2293,13 @@ void MMidi::sendController(uint8_t number, uint8_t value) {
     MIDI_SERIAL.write(0xB0 | midiChannel);
     MIDI_SERIAL.write(byte(number));
     MIDI_SERIAL.write(byte(value));
+    
+}
+
+void MMidi::sendStep() {
+    MIDI_SERIAL.write(0xB0 | midiChannel);
+    MIDI_SERIAL.write(byte(CFO_COMMAND));
+    MIDI_SERIAL.write(byte(SEQ_STEP_FORWARD));
     
 }
 
@@ -2474,8 +2579,8 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			Music.setFM3Shape(value);
 			break;
 		case ENV1_ENABLE:
-			if(value<64) Music.enableEnvelope1();
-			else Music.disableEnvelope1();
+//			if(value<64) Music.enableEnvelope1();
+//			else Music.disableEnvelope1();
 			break;
 		case ENV1_ATTACK:
 			Music.setEnv1Attack(value);
@@ -2490,8 +2595,8 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			Music.setEnv1Release(value);
 			break;
 		case ENV2_ENABLE:
-			if(value<64) Music.enableEnvelope2();
-			else Music.disableEnvelope2();
+//			if(value<64) Music.enableEnvelope2();
+//			else Music.disableEnvelope2();
 			break;
 		case ENV2_ATTACK:
 			Music.setEnv2Attack(value);
@@ -2513,7 +2618,7 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			Music.sendInstrument();
 			break;
 		case CFO_COMMAND:
-			Music.commandFlags(value);
+			Music.setCommandFlag(value);
 			break;
 		default:
 			break;

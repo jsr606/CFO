@@ -566,7 +566,7 @@ void MMusic::init()
 	setWaveform(0);
 	
 	// frequency setup
-	setFrequency(440);
+	setFrequency(220);
 	setSemitone1(0);
 	setSemitone2(0);
 	setSemitone3(0);
@@ -1803,8 +1803,8 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			Music.setFM3Shape(value);
 			break;
 		case ENV1_ENABLE:
-			if(value<64) Music.enableEnvelope1();
-			else Music.disableEnvelope1();
+//			if(value<64) Music.enableEnvelope1();
+//			else Music.disableEnvelope1();
 			break;
 		case ENV1_ATTACK:
 			Music.setEnv1Attack(value);
@@ -1819,8 +1819,8 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			Music.setEnv1Release(value);
 			break;
 		case ENV2_ENABLE:
-			if(value<64) Music.enableEnvelope2();
-			else Music.disableEnvelope2();
+//			if(value<64) Music.enableEnvelope2();
+//			else Music.disableEnvelope2();
 			break;
 		case ENV2_ATTACK:
 			Music.setEnv2Attack(value);
