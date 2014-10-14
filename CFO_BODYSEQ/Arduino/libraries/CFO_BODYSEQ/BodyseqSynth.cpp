@@ -125,8 +125,8 @@ void MMusic::generateFilterCoefficientsMoogLadder() {
 
 void synth_isr(void) {
 
-//    Music.output2T3DAC();
-    Music.output2DAC();
+    Music.output2T3DAC();
+//    Music.output2DAC();
 	
 	Music.envelope1();
 	Music.envelope2();
@@ -1061,7 +1061,7 @@ void MMusic::setCutoff(uint16_t c)
 //        Serial.println(filterCoefficientsMoogLadderFloat[6][i],16);
 //    }
 //    Serial.println("NEWLINE");
-    Serial.println(c>>8);
+//    Serial.println(c>>8);
 
 }
 

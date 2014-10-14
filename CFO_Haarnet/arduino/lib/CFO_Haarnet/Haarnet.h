@@ -27,6 +27,7 @@
 #include <Arduino.h>
 #include <spi4teensy3.h>
 #include "Synth.h"
+#include "Sequencer.h"
 
 ///////////////////////////////////////////////////////////////////////
 // THE BELOW FUNCTIONS ARE NEEDED FOR THE MUSIC PART TO RESPOND TO MIDI
