@@ -1,0 +1,9 @@
+notes on uploading code to teensy based CFOs
+
+first you have to install teensyduino: https://www.pjrc.com/teensy/teensyduino.html
+(you don't have to install any of the libraries)
+
+in arduino:
+board should be set to "Teensy 3.1"
+CPU speed should be set to "96 MHz (overclock)"
+USB type should be "MIDI"
