@@ -1,21 +1,24 @@
-// The Music object is automatically instantiated when the header file is
-// included. Make calls to the Music objects with "Music.function(args)".
-// You still need to call Music.init() in the setup() function below.
-//#include <SoftPWM.h>
+//______________________/\\\\\__________________________/\\\______________________________/\\\__________________________________________________________        
+// ____________________/\\\///__________________________\/\\\_____________________________\/\\\__________________________________________________________       
+//  ___________________/\\\______________________________\/\\\_____________________________\/\\\_____/\\\__/\\\_______________________________/\\\\\\\\___      
+//   _____/\\\\\\\\__/\\\\\\\\\_______/\\\\\______________\/\\\____________/\\\\\___________\/\\\____\//\\\/\\\___/\\\\\\\\\\_____/\\\\\\\\___/\\\////\\\__     
+//    ___/\\\//////__\////\\\//______/\\\///\\\____________\/\\\\\\\\\____/\\\///\\\____/\\\\\\\\\_____\//\\\\\___\/\\\//////____/\\\/////\\\_\//\\\\\\\\\__    
+//     __/\\\____________\/\\\_______/\\\__\//\\\___________\/\\\////\\\__/\\\__\//\\\__/\\\////\\\______\//\\\____\/\\\\\\\\\\__/\\\\\\\\\\\___\///////\\\__   
+//      _\//\\\___________\/\\\______\//\\\__/\\\____________\/\\\__\/\\\_\//\\\__/\\\__\/\\\__\/\\\___/\\_/\\\_____\////////\\\_\//\\///////__________\/\\\__  
+//       __\///\\\\\\\\____\/\\\_______\///\\\\\/_____________\/\\\\\\\\\___\///\\\\\/___\//\\\\\\\/\\_\//\\\\/_______/\\\\\\\\\\__\//\\\\\\\\\\________\/\\\\_ 
+//        ____\////////_____\///__________\/////_______________\/////////______\/////______\///////\//___\////________\//////////____\//////////_________\////__
+//         CFO BODYSEQ sequencer, 2 button version, reworked interaction, http://www.vsionhairies.info/
 
 #define MIDI_CHANNEL 1
-
 #include <spi4teensy3.h>
 #include <EEPROM.h>
 #include <CFO_BODYSEQ.h>
 
-const int seqLed [] = {3,4,5,6,7,8,9,10};
+const int seqLed [] = {2,3,4,5,6,7,8,9};
 int seqLedVal [] = {0,0,0,0,0,0,0,0};
 
-const int statusLed1 = 13;
-//const int button1 = 11, button2 = 12, button3 = 2;
-
-const int buttonPin [] = {11,12,2}; 
+const int statusLed1 = 10, statusLed2 = 11;
+const int buttonPin [] = {12,13}; 
 
 const int pot1 = A0, pot2 = A1;
 const int bodySwitch [] = {A2,A3,A4,A5,A6,A7,A8,A9};
@@ -56,10 +59,8 @@ boolean bodySwitchesTouched = false;
 int mode = 0;
 int preset = 16;
 
-//boolean buttonPress1 = false, buttonPress2 = false, buttonPress3 = false, buttonRelease1 = false, buttonRelease2 = false, buttonRelease3 = false, doublePress = false;
-
-boolean buttonState [] = {HIGH, HIGH, HIGH};
-boolean buttonAction [] = {false, false, false};
+boolean buttonState [] = {HIGH, HIGH};
+boolean buttonAction [] = {false, false};
 
 int potVal1 = 0, potVal2 = 0;
 boolean pot1Moved = false, pot2Moved = false, potsMoved = false;
@@ -91,11 +92,16 @@ void setup() {
 
   pinMode(buttonPin[0], INPUT_PULLUP);
   pinMode(buttonPin[1], INPUT_PULLUP);
-  pinMode(buttonPin[2], INPUT_PULLUP);
 
   newActiveScale(scaleLength);
 
+  pinMode(statusLed1,OUTPUT);
+  pinMode(statusLed2,OUTPUT);
+  for (int i = 0; i<8; i++) {
+    pinMode(seqLed[i], OUTPUT);
+  }
   startupAnimation();
+  
   sampleAverageNoise();  
 }
 
@@ -112,19 +118,26 @@ void loop() {
     readButtons();
 
     // general navigation
-    if (buttonState[0] == LOW) noteInputFromBodyswitches();
     
-    if (buttonState[1] == LOW) {
+    // button 0 pushed
+    if (buttonState[0] == LOW && buttonState[1] == HIGH) {
+      noteInputFromBodyswitches();
+    }
+    
+    // button 1 pushed
+    if (buttonState[1] == LOW && buttonState[0] == HIGH) {
       eraseNotesFromBodyswitches();
       if (pot1Moved) {
         // change sequencer speed
-        stepTime = map(analogRead(pot1),0,1023,1000,0);
+        stepTime = map(analogRead(pot1),1023,0,1000,0);
         potsMoved = false; 
       }
     }  
     
-    if (buttonState[2] == LOW) {
+    // both buttons pushed
+    if (buttonState[1] == LOW && buttonState[0] == LOW) {
       changeMode();
+      activeSeq = mode;
       if (pot2Moved) {
         changePreset();
         potsMoved = false;
@@ -134,70 +147,36 @@ void loop() {
         potsMoved = false;
       }
     }
-    
-    if (buttonState[2] == LOW && buttonState[0] == LOW) {
-      int lowestSwitch = 0, highestSwitch = 0;
-      if (bodySwitchesTouched) {
-        for (int i = 0; i<8; i++) {
-          if (bodySwitchVal[i] > 0) {
-            highestSwitch = i;
-          }
-          if (bodySwitchVal[7-i] > 0) {
-            lowestSwitch = 7-i;
-          }
-        }
-        seqStart = lowestSwitch;
-        seqEnd = highestSwitch;
-      }
-    }
-
-    //updateLEDs();
     lastInput = millis();
-
   }
-
-  activeSeq = mode;
 
   if (sequencerRunning) updateSequence();
   if (potsMoved) setCutoffFromPots();
-
-  //if (doublePress) sequencerRunning = !sequencerRunning;
 }
 
 void sampleAverageNoise() {
   Serial.print("sampling average noise levels: ");
 
   for (int i = 0; i<8; i++) {
-    pinMode(seqLed[i], OUTPUT);
-    //    SoftPWMSet(seqLed[i], 0);
-    //    SoftPWMSetFadeTime(seqLed[i], 0, 0);
     averageNoise += analogRead(bodySwitch[i]);
   }
-
   averageNoise = averageNoise/8 + 3;
   Serial.println(averageNoise);
 }
 
 void setCutoffFromPots() {
-  Music.setCutoff((analogRead(pot1))*64);
-  Music.setCutoffModAmount((analogRead(pot2))*64);
+  Music.setCutoff((1023-analogRead(pot1))*64);
+  Music.setCutoffModAmount((1023-analogRead(pot2))*64);
 }
 
 void updateLEDs() {
   for (int i = 0; i<8; i++) {
     if (seqNote[activeSeq*8+i] != -1) {
-      //      SoftPWMSet(seqLed[i], 100);
       digitalWrite(seqLed[i], HIGH);
-    } 
-    else {
-      //      SoftPWMSet(seqLed[seqStep], 0);
+    } else {
       digitalWrite(seqLed[i], LOW);
     }
   }
-}
-
-void resetPots() {
-
 }
 
 void newActiveScale (int length) {
@@ -252,8 +231,8 @@ void noteInputFromBodyswitches() {
 }
 
 void readPots() {
-  int newPotVal1 = 1023-analogRead(pot1);
-  int newPotVal2 = 1023-analogRead(pot2);
+  int newPotVal1 = analogRead(pot1);
+  int newPotVal2 = analogRead(pot2);
 
 
   potsMoved = false;
@@ -287,7 +266,7 @@ void readPots() {
 void changeOctave() {
 
   // change from pot
-  int newOctave = map(analogRead(pot1),0,1023,-3,4);
+  int newOctave = map(analogRead(pot1),1023,0,-3,4);
 
   baseNote = 36 + newOctave*12;
 
@@ -322,7 +301,7 @@ void changeMode() {
 }
 
 void changePreset() {
-  int newPreset = map(analogRead(pot2),0,1023,63,0);
+  int newPreset = map(analogRead(pot2),1023,0,63,0);
   if (preset != newPreset) { // only do something if preset has changed
     // NB! user preset 0-16 might be empty, resulting in crazy sounds!
     if (debug) Serial.print("new preset ");
@@ -384,6 +363,7 @@ void readBodyswitches() {
 }
 
 void printFeedback() {
+  // for debugging purposes
   for (int i = 0; i<8; i++) {
     int reading = analogRead (bodySwitch[i]);
 
@@ -400,36 +380,41 @@ void printFeedback() {
   Serial.print("\t");
   Serial.print(potVal2);
   Serial.println();
-
-
 }
 
 void startupAnimation() {
+
+  digitalWrite(statusLed1, HIGH);
+  digitalWrite(statusLed2, HIGH);
+
   for (int i = 0; i<8; i++) {
     digitalWrite(seqLed[i],HIGH);
-    delay(50);
-    digitalWrite(seqLed[i],LOW);  
+    delay(30); 
+  }
+  for (int i = 0; i<8; i++) {
+    digitalWrite(seqLed[i],LOW);
+    delay(30); 
   }
 
-  pinMode(statusLed1, OUTPUT);
-  digitalWrite(statusLed1, HIGH);
-  delay(50);
+
+  for (int i = 0; i<8; i++) {
+    digitalWrite(seqLed[7-i],HIGH);
+    delay(30); 
+  }
+  for (int i = 0; i<8; i++) {
+    digitalWrite(seqLed[7-i],LOW);
+    delay(30); 
+  }
+
   digitalWrite(statusLed1, LOW);
+  digitalWrite(statusLed2, LOW);
+  
+  delay(100);
 }
 
 void readButtons() {
-//  if (digitalRead(button1) == false && digitalRead(button2) == false) {
-//    if (doublePress == false) {
-//      doublePress = true;
-//      Serial.println("doublePress");
-//    }
-//  } 
-//  else {
-//    doublePress = false;
-//  }
 
   // buttons are active low
-
   for (int i = 0; i<3; i++) {
     if (digitalRead(buttonPin[i]) == HIGH) {
       if (buttonState[i] == LOW) {
@@ -460,5 +445,3 @@ void readButtons() {
     } 
   }
 }
-
-
