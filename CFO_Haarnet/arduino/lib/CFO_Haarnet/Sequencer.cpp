@@ -35,17 +35,18 @@ void MSequencer::init()
 
 void MSequencer::update()
 {
+    unsigned long tick = millis();
     for(int i = 0; i < MAX_SEQ; i++) {
         seq* s = _sequences[i];
         if(s == NULL || s->_stoped) continue;
         
-        unsigned long tick = millis();
         if(tick - s->ltick > s->_tempo) {
             //boom!
-            s->_callback();
-            s->ltick = millis();
+            s->_callback(); // add to queue
+            s->ltick = tick;
         }
     }
+    //boom!
 }
 
 int MSequencer::newSequence(int bpm, func_cb cb, int subdiv)
@@ -56,7 +57,7 @@ int MSequencer::newSequence(int bpm, func_cb cb, int subdiv)
     }
     
     if(j >= 0) {
-        seq* s = new seq(bpm, cb, subdiv);
+        seq* s = new seq(j, bpm, cb, subdiv);
         _sequences[j] = s;
     }
     
@@ -136,10 +137,10 @@ func_cb MSequencer::getCallback(int index)
 
 // seq
 
-seq::seq(int bpm, func_cb cb, int subdiv) : _stoped(true)
+seq::seq(int id, int bpm, func_cb cb, int subdiv) : _id(id), _stoped(true)
 {
-    setsubdiv(subdiv);
     setbpm(bpm);
+    setsubdiv(subdiv);
     callback(cb);
 }
 
@@ -147,6 +148,10 @@ void seq::setsubdiv(int v)
 {
     _subdiv = v;
     _tempo = int( (60000.0 / (float)_bpm) * (4.0 / (float)_subdiv) );
+    
+    
+    Serial.println(_id);
+    Serial.println(_tempo);
     
 }
 

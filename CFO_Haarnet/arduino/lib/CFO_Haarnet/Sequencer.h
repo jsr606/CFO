@@ -60,11 +60,12 @@ class seq {
     
 private:
     
-    seq(int bpm, func_cb cb, int subdiv);
+    seq(int id, int bpm, func_cb cb, int subdiv);
     
     int _bpm;
     int _subdiv;
     int _tempo;
+    int _id;
     
     unsigned long ltick;
 
