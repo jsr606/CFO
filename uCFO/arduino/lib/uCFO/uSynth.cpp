@@ -1,4 +1,4 @@
-/* 
+/*
  Synth.cpp - Friction Music library
  Copyright (c) 2013 Science Friction. 
  All right reserved.
@@ -21,11 +21,9 @@
  + contact: j.bak@ciid.dk
  */
 
-#include "Synth.h"
+#include "uSynth.h"
 
 IntervalTimer synthTimer;
-
-MCP4251 Mcp4251 = MCP4251( MCP4251_CS, 100000.0 ); 
 
 MMusic Music;
 
@@ -48,9 +46,40 @@ uint8_t sequencer[128];
 uint8_t instrument[128];
 uint8_t userPresets[MAX_PRESETS][PRESET_SIZE];
 
+bool commandFlags[128];
+
 
 const uint8_t programPresets[] = {
 #include <HaarnetPresets.h>
+};
+
+
+
+int64_t filterSamplesLP24dB[4];
+int64_t filterSamplesHP24dB[8];
+int64_t filterSamplesMoogLadder[4];
+
+const int64_t filterCoefficient[] = {
+#include <filterCoefficients_1poleLP.inc>
+};
+
+const float fcMoog[] = {
+#include <filterCutoffFrequenciesMoogLadder.inc>
+};
+
+float filterCoefficientsMoogLadderFloat[8][256];
+// T = 1 / samplerate
+// [0] wd = 2 * PI() * fc
+// [1] wa = (2/T) * tan(wd*T/2)
+// [2] g = wa * (T/2)
+// [3] gg = g * g
+// [4] ggg = g * g * g
+// [5] G = g * g * g * g
+// [6] Gstage = g / (1.0 + g)
+// [7] nothing yet
+
+const int64_t filterCoefficientsMoogLadder[] = {
+#include <filterCoefficientsMoogLadder.inc>
 };
 
 
@@ -61,26 +90,56 @@ const float semitoneTable[] = {0.25,0.2648658,0.2806155,0.29730177,0.31498027,0.
 
 const extern uint32_t portamentoTimeTable[] = {1,5,9,13,17,21,26,30,35,39,44,49,54,59,64,69,74,79,85,90,96,101,107,113,119,125,132,138,144,151,158,165,172,179,187,194,202,210,218,226,234,243,252,261,270,279,289,299,309,320,330,341,353,364,376,388,401,414,427,440,455,469,484,500,516,532,549,566,584,602,622,642,663,684,706,729,753,778,804,831,859,888,919,951,984,1019,1056,1094,1134,1176,1221,1268,1317,1370,1425,1484,1547,1614,1684,1760,1841,1929,2023,2125,2234,2354,2484,2627,2785,2959,3152,3368,3611,3886,4201,4563,4987,5487,6087,6821,7739,8918,10491,12693,15996,21500,32509,65535};
 
+void MMusic::generateFilterCoefficientsMoogLadder() {
+    
+    for(int i=0; i<256; i++) {
+        float T = 1.0f/float(SAMPLE_RATE);
+        float wd = 2.0f * PI * fcMoog[i];
+        float wa = (2.0f/T) * tan(wd*T/2.0f);
+        //    float g = tan(wd*T/2.0f);
+        float g = wa * (T/2.0f);
+        float gg = g * g;
+        float ggg = g * g * g;
+        float G = g * g * g * g;
+        float Gstage = g / (1.0 + g);
+        
+        filterCoefficientsMoogLadderFloat[0][i] = wd;
+        filterCoefficientsMoogLadderFloat[1][i] = wa;
+        filterCoefficientsMoogLadderFloat[2][i] = g;
+        filterCoefficientsMoogLadderFloat[3][i] = gg;
+        filterCoefficientsMoogLadderFloat[4][i] = ggg;
+        filterCoefficientsMoogLadderFloat[5][i] = G;
+        filterCoefficientsMoogLadderFloat[6][i] = Gstage;
+        filterCoefficientsMoogLadderFloat[7][i] = 0;
+    }
+
+}
 
 //////////////////////////////////////////////////////////
 //
-// SYNTH INTERRUPT - The pre-processor selects 8 or 12 bit
+// SYNTH INTERRUPT
 //
 //////////////////////////////////////////////////////////
 
 void synth_isr(void) {
-	
-    Music.output2T3DAC();
+
+//    Music.output2T3DAC();
+    Music.output2DAC();
 	
 	Music.envelope1();
 	Music.envelope2();
-	
-	if(Music.is12bit) Music.synthInterrupt12bitSineFM();
+    if(Music.is12bit) Music.synthInterrupt12bitSineFM();
+//	if(Music.is12bit) Music.phaseDistortionOscillator();
+//  if(Music.is12bit) Music.synthInterrupt12bitSawFM();
 	else Music.synthInterrupt8bitFM();
 		
 	Music.amplifier();
 
-	Music.filter();
+	if(Music.lowpass) Music.filterLP6dB();
+	if(Music.highpass) Music.filterHP6dB();
+    if(Music.lowpass24dB) Music.filterLP24dB();
+    if(Music.highpass24dB) Music.filterHP24dB();
+    if(Music.moogLadder) Music.filterMoogLadder();
 
 }
 
@@ -155,7 +214,8 @@ void MMusic::synthInterrupt8bitFM ()
 
 
 void MMusic::synthInterrupt12bitSineFM()
-{    
+{
+	
 	dPhase1 = dPhase1 + (period1 - dPhase1) / portamento;
 	modulator1 = (fmAmount1 * fmOctaves1 * (*osc1modSource_ptr))>>10;
 	modulator1 = (modulator1 * (*osc1modShape_ptr))>>16;
@@ -164,6 +224,7 @@ void MMusic::synthInterrupt12bitSineFM()
 	accumulator1 = accumulator1 + dPhase1 + modulator1;
 	index1 = accumulator1 >> 20;
 	oscil1 = sineTable[index1];
+	index1 = accumulator1 >> 20;
 	oscil1 -= 32768;
 	sample = (oscil1 * gain1);
 	
@@ -186,6 +247,50 @@ void MMusic::synthInterrupt12bitSineFM()
 	accumulator3 = accumulator3 + dPhase3 + modulator3;
 	index3 = accumulator3 >> 20;
 	oscil3 = sineTable[index3];
+	oscil3 -= 32768;
+	sample += (oscil3 * gain3);
+	
+	sample >>= 18;
+ 	
+}
+
+
+void MMusic::synthInterrupt12bitSawFM()
+{
+	
+	dPhase1 = dPhase1 + (period1 - dPhase1) / portamento;
+	modulator1 = (fmAmount1 * fmOctaves1 * (*osc1modSource_ptr))>>10;
+	modulator1 = (modulator1 * (*osc1modShape_ptr))>>16;
+	modulator1 = (modulator1 * int64_t(dPhase1))>>16;
+	modulator1 = (modulator1>>((modulator1>>31)&zeroFM));
+	accumulator1 = accumulator1 + dPhase1 + modulator1;
+    //	index1 = accumulator1 >> 20;
+    //	oscil1 = sineTable[index1];
+	oscil1 = accumulator1 >> 16;
+	oscil1 -= 32768;
+	sample = (oscil1 * gain1);
+	
+	dPhase2 = dPhase2 + (period2 - dPhase2) / portamento;
+	modulator2 = (fmAmount2 * fmOctaves2 * (*osc2modSource_ptr))>>10;
+	modulator2 = (modulator2 * (*osc2modShape_ptr))>>16;
+	modulator2 = (modulator2 * int64_t(dPhase2))>>16;
+	modulator2 = (modulator2>>((modulator2>>31)&zeroFM));
+	accumulator2 = accumulator2 + dPhase2+ modulator2;
+    //	index2 = accumulator2 >> 20;
+    //	oscil2 = sineTable[index2];
+	oscil2 = accumulator2 >> 16;
+	oscil2 -= 32768;
+	sample += (oscil2 * gain2);
+	
+	dPhase3 = dPhase3 + (period3 - dPhase3) / portamento;
+	modulator3 = (fmAmount3 * fmOctaves3 * (*osc3modSource_ptr))>>10;
+	modulator3 = (modulator3 * (*osc3modShape_ptr))>>16;
+	modulator3 = (modulator3 * int64_t(dPhase3))>>16;
+	modulator3 = (modulator3>>((modulator3>>31)&zeroFM));
+	accumulator3 = accumulator3 + dPhase3 + modulator3;
+    //	index3 = accumulator3 >> 20;
+    //	oscil3 = sineTable[index3];
+	oscil3 = accumulator3 >> 16;
 	oscil3 -= 32768;
 	sample += (oscil3 * gain3);
 	
@@ -307,20 +412,6 @@ void MMusic::envelope2() {
 void MMusic::amplifier() {
 	
 	sample = (env1 * sample) >> 16;
-/*	
-	dacSPIB0 = env1 >> 8;
-	dacSPIB0 >>= 4;
-	dacSPIB0 |= dacSetB; 
-	dacSPIB1 = env1 >> 4;
-	
-	digitalWriteFast(DAC_CS, LOW);
-    spi4teensy3::send(dacSPIB0);
-    spi4teensy3::send(dacSPIB1);
-    
-	//	while(SPI.transfer(dacSPIB0));
-	//	while(SPI.transfer(dacSPIB1));
-	digitalWriteFast(DAC_CS, HIGH);
-*/	
 
 }
 
@@ -336,6 +427,23 @@ void MMusic::output2T3DAC() {
 	sample += 32768;
     analogWrite(A14, sample>>4);
 }
+
+void MMusic::output2DAC() {
+    sample += 32768;
+    dacSPIA0 = sample >> 8;
+	dacSPIA0 >>= 4;
+	dacSPIA0 |= dacSetA;
+	dacSPIA1 = sample >> 4;
+	
+	digitalWriteFast(DAC_CS, LOW);
+    spi4teensy3::send(dacSPIA0);
+    spi4teensy3::send(dacSPIA1);
+    
+	//	while(SPI.transfer(dacSPIB0));
+	//	while(SPI.transfer(dacSPIB1));
+	digitalWriteFast(DAC_CS, HIGH);
+}
+
 
 
 
@@ -455,6 +563,8 @@ void MMusic::getRandomizedPreset(uint8_t p, uint8_t r)
 }
 
 
+#if defined(USB_MIDI)
+
 void MMusic::sendInstrument()
 {
 //	Serial.print("SENDING PRESET NUMBER : ");
@@ -466,6 +576,12 @@ void MMusic::sendInstrument()
 	}
 	sei();
 }
+
+#else 
+
+void MMusic::sendInstrument(){;}
+
+#endif
 
 
 void MMusic::savePreset(uint8_t p)
@@ -506,8 +622,6 @@ void MMusic::loadAllPresets()
 
 void MMusic::init()
 {
-    pinMode(MUX_A, OUTPUT);
-    pinMode(MUX_B, OUTPUT);
 
     Midi.init();
 	
@@ -517,7 +631,12 @@ void MMusic::init()
 			userPresets[p][i] = 0;
 		}
 	}
-	
+    
+    generateFilterCoefficientsMoogLadder();
+    for(int i=0; i<256; i++) {
+        Serial.println(filterCoefficientsMoogLadderFloat[6][i]);
+    }
+    
 	sampleRate = SAMPLE_RATE;
 	sample = 0;
 	set12bit(false);
@@ -566,7 +685,7 @@ void MMusic::init()
 	setWaveform(0);
 	
 	// frequency setup
-	setFrequency(220);
+	setFrequency(440);
 	setSemitone1(0);
 	setSemitone2(0);
 	setSemitone3(0);
@@ -614,15 +733,26 @@ void MMusic::init()
 	dacSetA |= (DAC_A << DAC_AB) | (0 << DAC_BUF) | (1 << DAC_GA) | (1 << DAC_SHDN);
 	dacSetB |= (DAC_B << DAC_AB) | (0 << DAC_BUF) | (1 << DAC_GA) | (1 << DAC_SHDN);
     
-    analogWriteResolution(12);
+//    analogWriteResolution(12);
+//    analogWrite(A14, 0);  //Set the DAC output to 0.
+////    DAC0_C0 &= 0b10111111;  //uses 1.2V reference for DAC instead of 3.3V
+//    
+//    SIM_SCGC2 |= SIM_SCGC2_DAC0;
+//	DAC0_C0 = DAC_C0_DACEN;                   // 1.2V VDDA is DACREF_2
+////	DAC0_C0 = DAC_C0_DACEN | DAC_C0_DACRFS; // 3.3V VDDA is DACREF_2
+//	// slowly ramp up to DC voltage, approx 1/4 second
+//	for (int16_t i=0; i<128; i++) {
+//		analogWrite(A14, i);
+//		delay(2);
+//	}
 	
 	loadAllPresets();
 	
 	spi_setup();
 
 	// filter setup
-	setCutoff(4095);
-	setResonance(127);
+	setCutoff(BIT_16);
+	setResonance(BIT_16);
     setFilterType(0);
 	
 	cutoffModSource_ptr = &env2;
@@ -636,9 +766,8 @@ void MMusic::init()
 	
 	cli();
 	synthTimer.begin(synth_isr, 1000000.0 / sampleRate);
-//    synthTimer.priority(16);
 	sei();
-	
+    
 }
 
 
@@ -650,15 +779,22 @@ void MMusic::init()
 //
 /////////////////////////////////////
 
-void MMusic::setCutoff(int32_t c)
+void MMusic::setCutoff(uint16_t c)
 {
-	cutoff = c;
+    cutoff = c;
+//    for(int i=0; i<256; i++) {
+//        Serial.println(filterCoefficientsMoogLadderFloat[6][i],16);
+//    }
+//    Serial.println("NEWLINE");
+//    Serial.println(c>>8);
+
 }
 
 
-void MMusic::setResonance(uint8_t res)
+void MMusic::setResonance(uint32_t res)
 {
 	resonance = res;
+    k = res;
 }
 
 
@@ -675,51 +811,340 @@ void MMusic::setCutoffModDirection(int32_t direction) {
 }
 
 
-void MMusic::filter() {
-	
+void MMusic::filterLP6dB() {
 	
 	int64_t mod = (int64_t(cutoffModAmount) * (int64_t(*cutoffModSource_ptr)))>>16;
-	int64_t c = (mod + int64_t(cutoff))>>1;
+	int64_t c = (mod + int64_t(cutoff));
 	if(c > 65535) c = 65535;
 	else if(c < 0) c = 0;
-	c = ((((c * 32768) >> 15) + 65536) >> 1);
-	
-	// Formatting the samples to be transfered to the MCP4822 DAC to output B
-	dacSPIA0 = uint32_t(c) >> 8;
-	dacSPIA0 >>= 4;
-	dacSPIA0 |= dacSetA; 
-	dacSPIA1 = c >> 4;
-	
-	digitalWriteFast(DAC_CS, LOW);
-    spi4teensy3::send(dacSPIA0);
-    spi4teensy3::send(dacSPIA1);
-	digitalWriteFast(DAC_CS, HIGH);
+//	c = ((((c * 32768) >> 15) + 65536) >> 1);
 
-	
-// For later implementation of digital pot for Resonance	
-//	Mcp4251.wiper0_pos(resonance);
-//	Mcp4251.wiper1_pos(resonance);
+    b1 = filterCoefficient[c>>8];
+    a0 = BIT_32 - b1;
+    
+    sample = (a0 * sample + b1 * lastSampleOutLP) >> 32;
+    lastSampleOutLP = sample;
 
 }
 
 
+void MMusic::filterLP24dB() {
+    
+    
+    int64_t mod = (int64_t(cutoffModAmount) * (int64_t(*cutoffModSource_ptr)))>>16;
+    int64_t c = (mod + int64_t(cutoff));
+    if(c > 65535) c = 65535;
+    else if(c < 0) c = 0;
+    //	c = ((((c * 32768) >> 15) + 65536) >> 1);
+    
+    int fc = c>>8;
+    //    if(fc > 220) fc = 220;
+    
+    b1 = filterCoefficient[fc];
+    a0 = BIT_32 - b1;
+    
+    //    int64_t res = resonance - (c >> 1);
+    //    k = resonance >> 12;
+    //    x0 = sample + feedbackSample * k;
+    //    x0 = sample + ((feedbackSample * resonance) >> 12);
+    //    feedbackSample =
+    x0 = (sample << 12) + (feedbackSample * resonance);
+    x0 >>= 12;
+    //    x0 += 32768;
+    if(x0 > 30735) {
+        x0 = (((x0 - 30735) * 4098) >> 16) + 30735;
+    }
+    else if(x0 < -30735) {
+        x0 = (((x0 + 30735) * 4098) >> 16) - 30735;
+    }
+    //    x0 -= 32768;
+    //    x0 = x0 / (4096 + resonance);
+    if(x0 > MAX_SAMPLE) x0 = MAX_SAMPLE;
+    else if(x0 < MIN_SAMPLE) x0 = MIN_SAMPLE;
+    
+    y1 = filterSamplesLP24dB[0];
+    y2 = filterSamplesLP24dB[1];
+    y3 = filterSamplesLP24dB[2];
+    y4 = filterSamplesLP24dB[3];
+    
+    y1 = (a0 * x0 + b1 * y1) >> 32;
+    y2 = (a0 * y1 + b1 * y2) >> 32;
+    y3 = (a0 * y2 + b1 * y3) >> 32;
+    y4 = (a0 * y3 + b1 * y4) >> 32;
+    
+    filterSamplesLP24dB[0] = y1;
+    filterSamplesLP24dB[1] = y2;
+    filterSamplesLP24dB[2] = y3;
+    filterSamplesLP24dB[3] = y4;
+    
+    sample = y4;
+    
+    // Feedback of LP output through HP
+    
+    a0 = (BIT_32 + b1) >> 1;
+    a1 = -a0;
+    
+    xNew = sample;
+    xOld = filterSamplesHP24dB[0];
+    yOld = filterSamplesHP24dB[4];
+    yNew = (a0 * xNew + a1 * xOld + b1 * yOld) >> 32;
+    x1 = xNew;
+    y1 = yNew;
+    
+    xNew = y1;
+    xOld = filterSamplesHP24dB[1];
+    yOld = filterSamplesHP24dB[5];
+    yNew = (a0 * xNew + a1 * xOld + b1 * yOld) >> 32;
+    x2 = xNew;
+    y2 = yNew;
+    
+    xNew = y2;
+    xOld = filterSamplesHP24dB[2];
+    yOld = filterSamplesHP24dB[6];
+    yNew = (a0 * xNew + a1 * xOld + b1 * yOld) >> 32;
+    x3 = xNew;
+    y3 = yNew;
+    
+    xNew = y3;
+    xOld = filterSamplesHP24dB[3];
+    yOld = filterSamplesHP24dB[7];
+    yNew = (a0 * xNew + a1 * xOld + b1 * yOld) >> 32;
+    x4 = xNew;
+    y4 = yNew;
+    
+    filterSamplesHP24dB[0] = x1;
+    filterSamplesHP24dB[1] = x2;
+    filterSamplesHP24dB[2] = x3;
+    filterSamplesHP24dB[3] = x4;
+    
+    filterSamplesHP24dB[4] = y1;
+    filterSamplesHP24dB[5] = y2;
+    filterSamplesHP24dB[6] = y3;
+    filterSamplesHP24dB[7] = y4;
+    
+    feedbackSample = y4;
+}
+
+
+
+void MMusic::filterHP24dB() {
+
+    int64_t mod = (int64_t(cutoffModAmount) * (int64_t(*cutoffModSource_ptr)))>>16;
+    int64_t c = (mod + int64_t(cutoff));
+    if(c > 65535) c = 65535;
+    else if(c < 0) c = 0;
+    //	c = ((((c * 32768) >> 15) + 65536) >> 1);
+
+
+    b1 = filterCoefficient[c>>8];
+    a0 = (BIT_32 + b1) >> 1;
+    a1 = -a0;
+
+    xNew = sample;
+    xOld = filterSamplesHP24dB[0];
+    yOld = filterSamplesHP24dB[4];
+    yNew = (a0 * xNew + a1 * xOld + b1 * yOld) >> 32;
+    x1 = xNew;
+    y1 = yNew;
+    
+    xNew = y1;
+    xOld = filterSamplesHP24dB[1];
+    yOld = filterSamplesHP24dB[5];
+    yNew = (a0 * xNew + a1 * xOld + b1 * yOld) >> 32;
+    x2 = xNew;
+    y2 = yNew;
+
+    xNew = y2;
+    xOld = filterSamplesHP24dB[2];
+    yOld = filterSamplesHP24dB[6];
+    yNew = (a0 * xNew + a1 * xOld + b1 * yOld) >> 32;
+    x3 = xNew;
+    y3 = yNew;
+    
+    xNew = y3;
+    xOld = filterSamplesHP24dB[3];
+    yOld = filterSamplesHP24dB[7];
+    yNew = (a0 * xNew + a1 * xOld + b1 * yOld) >> 32;
+    x4 = xNew;
+    y4 = yNew;
+
+    filterSamplesHP24dB[0] = x1;
+    filterSamplesHP24dB[1] = x2;
+    filterSamplesHP24dB[2] = x3;
+    filterSamplesHP24dB[3] = x4;
+    
+    filterSamplesHP24dB[4] = y1;
+    filterSamplesHP24dB[5] = y2;
+    filterSamplesHP24dB[6] = y3;
+    filterSamplesHP24dB[7] = y4;
+
+    sample = y4;
+
+}
+
+
+void MMusic::filterMoogLadder() {
+    
+    int64_t mod = (int64_t(cutoffModAmount) * (int64_t(*cutoffModSource_ptr)))>>16;
+	int64_t c = (mod + int64_t(cutoff));
+	if(c > 65535) c = 65535;
+	else if(c < 0) c = 0;
+
+    int fc = c>>8;
+    if(fc > 234) fc = 234;
+    x0 = sample;
+    u = x0;
+//    g = filterCoefficientsMoogLadder[fc];
+//    gg = filterCoefficientsMoogLadder[256 + fc];
+//    ggg = filterCoefficientsMoogLadder[512 + fc];
+//    G = filterCoefficientsMoogLadder[768 + fc];
+    Gstage = filterCoefficientsMoogLadder[1024 + fc];
+    
+//    // u = (x0 - k * S) / (1 + k * G); // THIS IS THE ORIGINAL EQUATION
+    
+//    S = (ggg * z1) >> 16;
+//    S += (gg * z2) >> 16;
+//    S += (g * z3) >> 16;
+//    S += z4 >> 16;
+//    
+//    int64_t div = (281474976710656 + (k * G)); // 48bit
+//    int64_t sub = (k * S);
+//    u = x0 << 48;
+//    u = u - sub;
+//    u = (u / div);
+    
+//    S = (ggg * z1) >> 32;
+//    S += (gg * z2) >> 32;
+//    S += (g * z3) >> 32;
+//    S += z4 >> 32;
+//    
+//    int64_t div = (BIT_32 + ((k * G) >> 16)); // 32bit
+//    div = div >> 16; // 16bit
+//    int64_t sub = (k * S); // 32bit
+//    u = x0 << 16;// 32bit
+//    u = u - sub;
+//    u = (u / div);
+
+//    g = filterCoefficientsMoogLadderFloat[2][fc];
+//    gg = filterCoefficientsMoogLadderFloat[3][fc];
+//    ggg = filterCoefficientsMoogLadderFloat[4][fc];
+//    G = filterCoefficientsMoogLadderFloat[5][fc];
+//    Gstage = filterCoefficientsMoogLadderFloat[6][fc];
+//    float kfloat = 0.0f;
+//    float div = (1 + (kfloat * G));
+//    u = int64_t(float(u) / div); // FIX // k << 16
+    
+    v1 = ((u - z1) * Gstage) >> 32;
+    y1 = (v1 + z1);
+    z1 = y1 + v1;
+    
+    v2 = ((y1 - z2) * Gstage) >> 32;
+    y2 = (v2 + z2);
+    z2 = y2 + v2;
+    
+    v3 = ((y2 - z3) * Gstage) >> 32;
+    y3 = (v3 + z3);
+    z3 = y3 + v3;
+    
+    v4 = ((y3 - z4) * Gstage) >> 32;
+    y4 = (v4 + z4);
+    z4 = y4 + v4;
+    
+//    filterSamplesMoogLadder[0] = y1;
+//    filterSamplesMoogLadder[1] = y2;
+//    filterSamplesMoogLadder[2] = y3;
+//    filterSamplesMoogLadder[3] = y4;
+    
+    sample = y4;
+
+    
+}
+
+void MMusic::filterHP6dB() {
+    
+    sampleInHP = sample;
+	
+	int64_t mod = (int64_t(cutoffModAmount) * (int64_t(*cutoffModSource_ptr)))>>16;
+	int64_t c = (mod + int64_t(cutoff));
+	if(c > 65535) c = 65535;
+	else if(c < 0) c = 0;
+    //	c = ((((c * 32768) >> 15) + 65536) >> 1);
+    
+    b1 = filterCoefficient[c>>8];
+    a0 = (BIT_32 + b1) >> 1;
+    a1 = -a0;
+    
+    sampleOutHP = (a0 * sampleInHP + a1 * lastSampleInHP + b1 * lastSampleOutHP) >> 32;
+
+    lastSampleInHP = sampleInHP;
+    lastSampleOutHP = sampleOutHP;
+    sample = sampleOutHP;
+    
+}
+
+
+
 void MMusic::setFilterType(uint8_t type) {
     
-    if(type == LOWPASS) {
-        digitalWrite(MUX_B, LOW);
-        digitalWrite(MUX_A, LOW);
-    }
-    else if(type == HIGHPASS) {
-        digitalWrite(MUX_B, LOW);
-        digitalWrite(MUX_A, HIGH);
-    }
-    else if(type == BANDPASS) {
-        digitalWrite(MUX_B, HIGH);
-        digitalWrite(MUX_A, LOW);
-    }
-    else if(type == NOTCH) {
-        digitalWrite(MUX_B, HIGH);
-        digitalWrite(MUX_A, HIGH);
+    switch (type) {
+        case LP6:
+            lowpass = true;
+            highpass = false;
+            lowpass24dB = false;
+            highpass24dB = false;
+            moogLadder = false;
+            break;
+        case HP6:
+            lowpass = false;
+            highpass = true;
+            lowpass24dB = false;
+            highpass24dB = false;
+            moogLadder = false;
+            break;
+        case BP6:
+            lowpass = true;
+            highpass = true;
+            lowpass24dB = false;
+            highpass24dB = false;
+            moogLadder = false;
+            break;
+        case THRU:
+            lowpass = false;
+            highpass = false;
+            lowpass24dB = false;
+            highpass24dB = false;
+            moogLadder = false;
+            break;
+        case LP24:
+            lowpass = false;
+            highpass = false;
+            lowpass24dB = true;
+            highpass24dB = false;
+            moogLadder = false;
+            break;
+        case HP24:
+            lowpass = false;
+            highpass = false;
+            lowpass24dB = false;
+            highpass24dB = true;
+            moogLadder = false;
+            break;
+        case BP24:
+            lowpass = false;
+            highpass = false;
+            lowpass24dB = true;
+            highpass24dB = true;
+            moogLadder = false;
+            break;
+        case MOOG:
+            lowpass = false;
+            highpass = false;
+            lowpass24dB = false;
+            highpass24dB = false;
+            moogLadder = true;
+            break;
+        default:
+            break;
     }
 }
 
@@ -1322,7 +1747,7 @@ void MMusic::noteOn(uint8_t note)
 
 void MMusic::noteOff(uint8_t note)
 {	
-	if(notePlayed == note) {
+	if(notePlayed = note) {
 		env1Stage = 4;
 		env2Stage = 4;
 	}    
@@ -1469,6 +1894,48 @@ void MMusic::setEnv2VelPeak(uint8_t vel)
 }
 
 
+void MMusic::setCommandFlag(uint8_t flag)
+{
+    commandFlags[flag] = 1;
+//    switch(flag) {
+//        case SEQ_STEP_FORWARD:
+//            commandFlags[SEQ_STEP_FORWARD] = 1;
+//            break;
+//        default:
+//            break;
+//            
+//    }
+}
+
+
+void MMusic::clearCommandFlag(uint8_t flag)
+{
+    commandFlags[flag] = 0;
+//    switch(flag) {
+//        case SEQ_STEP_FORWARD:
+//            commandFlags[SEQ_STEP_FORWARD] = 0;
+//            break;
+//        default:
+//            break;
+//            
+//    }
+}
+
+
+bool MMusic::checkCommandFlag(uint8_t flag)
+{
+    return commandFlags[flag];
+//    switch(flag) {
+//        case SEQ_STEP_FORWARD:
+//            return commandFlags[SEQ_STEP_FORWARD];
+//            break;
+//        default:
+//            break;
+//            
+//    }
+}
+
+
 
 /////////////////////////////////////
 //
@@ -1526,6 +1993,39 @@ void MMidi::checkSerialMidi()
 			}
 		}
 	}	
+}
+
+
+void MMidi::sendNoteOff(uint8_t note) {
+    
+    MIDI_SERIAL.write(0x80 | midiChannel);
+    MIDI_SERIAL.write(byte(note));
+    MIDI_SERIAL.write(0x00);
+    
+}
+
+
+void MMidi::sendNoteOn(uint8_t note, uint8_t vel) {
+    
+    MIDI_SERIAL.write(0x90 | midiChannel);
+    MIDI_SERIAL.write(byte(note));
+    MIDI_SERIAL.write(byte(vel));
+    
+}
+
+void MMidi::sendController(uint8_t number, uint8_t value) {
+    
+    MIDI_SERIAL.write(0xB0 | midiChannel);
+    MIDI_SERIAL.write(byte(number));
+    MIDI_SERIAL.write(byte(value));
+    
+}
+
+void MMidi::sendStep() {
+    MIDI_SERIAL.write(0xB0 | midiChannel);
+    MIDI_SERIAL.write(byte(CFO_COMMAND));
+    MIDI_SERIAL.write(byte(SEQ_STEP_FORWARD));
+    
 }
 
 
@@ -1629,7 +2129,7 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			Music.setCutoff(value * 512);
 			break;			
 		case RESONANCE:
-			Music.setResonance(value * 2);
+			Music.setResonance(value * 512);
 			break;			
 		case FILTER_TYPE:
 			Music.setFilterType(value);
@@ -1841,6 +2341,9 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 		case PRESET_RECALL:
 			Music.getPreset(value);
 			Music.sendInstrument();
+			break;
+		case CFO_COMMAND:
+			Music.setCommandFlag(value);
 			break;
 		default:
 			break;
