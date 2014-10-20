@@ -1,0 +1,229 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1265\cocoasubrtf200
+{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;}
+{\colortbl;\red255\green255\blue255;\red0\green116\blue0;\red170\green13\blue145;\red100\green56\blue32;
+\red28\green0\blue207;}
+\paperw16840\paperh11900\margl1440\margr1440\vieww16500\viewh14280\viewkind0
+\deftab560
+\pard\tx560\pardeftab560\pardirnatural
+
+\f0\fs22 \cf0 \CocoaLigature0 M3T3 MUSIC CHEAT SHEET\
+\
+\
+	\cf2 // FREQUENCY AND DETUNE FUNCTIONS\cf0 \
+	\cf3 void\cf0  setFrequency(\cf3 float\cf0  frequency);	\cf2 // 0.0 - whatever, not sure what happens when negative :)\cf0 \
+	\cf3 void\cf0  setFrequency1(\cf3 float\cf0  frequency1);	\
+	\cf3 void\cf0  setFrequency2(\cf3 float\cf0  frequency2);\
+	\cf3 void\cf0  setFrequency3(\cf3 float\cf0  frequency3);\
+\
+	\cf3 void\cf0  setSemitone1(int8_t semi);	\cf2 // -24 to 24\cf0 \
+	\cf3 void\cf0  setSemitone2(int8_t semi);\
+	\cf3 void\cf0  setSemitone3(int8_t semi);\
+\
+	\cf3 void\cf0  setDetune(\cf3 float\cf0  detune);		\cf2 // 0.0 to whatever.\cf0 \
+	\cf3 void\cf0  setDetune1(\cf3 float\cf0  detune);	\cf2 // 1.0 is one octave.\cf0 \
+	\cf3 void\cf0  setDetune2(\cf3 float\cf0  detune);	\cf2 // best results with detune between 0.00 and 0.02\cf0 \
+	\cf3 void\cf0  setDetune3(\cf3 float\cf0  detune);\
+\
+	\cf3 void\cf0  setOsc1LFO(\cf3 bool\cf0  lfo);	\cf2 // true or false\cf0 \
+	\cf3 void\cf0  setOsc2LFO(\cf3 bool\cf0  lfo);\
+	\cf3 void\cf0  setOsc3LFO(\cf3 bool\cf0  lfo);\
+\
+	\cf3 void\cf0  setFM1(uint8_t fm); \cf2 // 0 - 127\cf0 \
+	\cf3 void\cf0  setFM2(uint8_t fm);\
+	\cf3 void\cf0  setFM3(uint8_t fm);\
+\
+	\cf3 void\cf0  setFMoctaves(uint8_t octs);	\cf2 // 1 - 128, it won\'92t go down to zero.\cf0 \
+	\cf3 void\cf0  setFM1octaves(uint8_t octs);\
+	\cf3 void\cf0  setFM2octaves(uint8_t octs);\
+	\cf3 void\cf0  setFM3octaves(uint8_t octs);\
+\
+	\cf3 void\cf0  setFM1Source(uint8_t source);	\cf2 // 0 - 3 where\cf0 \
+	\cf3 void\cf0  setFM2Source(uint8_t source);	\cf2 // 0 is linear, 1 is Osc1\cf0 \
+	\cf3 void\cf0  setFM3Source(uint8_t source);	\cf2 // 2 is Osc2 and 3 is Osc3\cf0 \
+\
+	\cf3 void\cf0  setFM1Shape(uint8_t shape);	\cf2 // 0 - 5 where\cf0 \
+	\cf3 void\cf0  setFM2Shape(uint8_t shape);	\cf2 // 0 is linear full signal\cf0 \
+	\cf3 void\cf0  setFM3Shape(uint8_t shape);	\cf2 // 1 is envelope1, 2 is envelope2, \
+									// 3 is oscillator1, 4 is oscillator2 and 5 is oscillator 3\cf0 \
+\
+	\cf3 void\cf0  fmToZeroHertz(\cf3 bool\cf0 );		\cf2 // true or false, if set to true the FM sounds more harmonic\cf0 \
+\
+	\cf3 void\cf0  setPortamento(int32_t port);	\cf2 // 0 - 127\cf0 \
+\
+\cf3 	void\cf0  set12bit(\cf3 bool\cf0 )		\cf2 // true or false\cf0 \
+\
+\
+	\cf2 // WAVEFORM FUNCTIONS\cf0 \
+	\cf3 void\cf0  setWaveform(uint16_t waveForm);    \cf2 // JUST FOR 8bit WAVEFORMS\cf0 \
+	\cf3 void\cf0  setWaveform1(uint16_t waveForm);   \cf2 // 0 - 15\cf0 \
+	\cf3 void\cf0  setWaveform2(uint16_t waveForm);   \cf2 //\cf0 \
+	\cf3 void\cf0  setWaveform3(uint16_t waveForm);   \cf2 //\
+\
+	// SHORTNAMES FOR WAVEFORMS\cf0 \
+\pard\tx560\pardeftab560\pardirnatural
+\cf4 	SINE \cf5 0\cf4 \
+	SQUARE \cf5 1\cf4 \
+	PULSE \cf5 2\cf4 \
+	TRIANGLE \cf5 3\cf4 \
+	SAW \cf5 4\cf4 \
+	FUZZ \cf5 5\cf4 \
+	DIGI1 \cf5 6\cf4 \
+	DIGI2 \cf5 7\cf4 \
+	DIGI3 \cf5 8\cf4 \
+	DIGI4 \cf5 9\cf4 \
+	NOISE \cf5 10\cf4 \
+	DIGI6 \cf5 11\cf4 \
+	TAN1 \cf5 12\cf4 \
+	TAN2 \cf5 13\cf4 \
+	TAN3 \cf5 14\cf4 \
+	TAN4 \cf5 15\cf2 \
+\pard\tx560\pardeftab560\pardirnatural
+\cf0 \page 	\cf2 // GAIN FUNCTIONS\cf0 \
+	\cf3 void\cf0  setGain(\cf3 float\cf0  value); \cf2 // 0.0 - 1.0          \cf0 \
+	\cf3 void\cf0  setGain1(\cf3 float\cf0  value); \cf2 // 0.0 - 1.0         \cf0 \
+	\cf3 void\cf0  setGain2(\cf3 float\cf0  value); \cf2 // 0.0 - 1.0         \cf0 \
+	\cf3 void\cf0  setGain3(\cf3 float\cf0  value); \cf2 // 0.0 - 1.0         \cf0 \
+\
+	\cf3 float\cf0  getGain();       \cf2 // 0.0 - 1.0         \cf0 \
+	\cf3 float\cf0  getGain1();       \cf2 // 0.0 - 1.0         \cf0 \
+	\cf3 float\cf0  getGain2();       \cf2 // 0.0 - 1.0         \cf0 \
+	\cf3 float\cf0  getGain3();       \cf2 // 0.0 - 1.0         \cf0 \
+\
+\
+\
+\
+	\cf2 // NOTE FUNCTIONS\cf0 \
+	\cf3 void\cf0  noteOn(uint8_t note, uint8_t vel); \cf2 // 0 - 127\cf0 \
+	\cf3 void\cf0  noteOn(uint8_t note); \cf2 // 0 - 127\cf0 \
+\
+	\cf3 void\cf0  noteOff(uint8_t note); \cf2 // 0 - 127\cf0 \
+	\cf3 void\cf0  noteOff();\
+\
+	\cf3 float\cf0  getNoteFrequency(uint8_t note); \cf2 // 0 - 127\cf0 \
+\
+\
+\
+\
+	\cf2 // ENVELOPE FUNCTIONS\cf0 \
+	\cf3 void\cf0  enableEnvelope1();\
+	\cf3 void\cf0  disableEnvelope1();	\
+\
+	\cf3 void\cf0  setEnv1Attack(uint8_t att); \cf2 // 0 - 127              \cf0 \
+	\cf3 void\cf0  setEnv1Decay(uint8_t dec); \cf2 // 0 - 127               \cf0 \
+	\cf3 void\cf0  setEnv1Sustain(uint8_t sus); \cf2 // 0 - 127             \cf0 \
+	\cf3 void\cf0  setEnv1Release(uint8_t rel); \cf2 // 0 - 127             \cf0 \
+	\
+	\cf3 void\cf0  enableEnvelope2();\
+	\cf3 void\cf0  disableEnvelope2();\
+\
+	\cf3 void\cf0  setEnv2Attack(uint8_t att); \cf2 // 0 - 127              \cf0 \
+	\cf3 void\cf0  setEnv2Decay(uint8_t dec); \cf2 // 0 - 127               \cf0 \
+	\cf3 void\cf0  setEnv2Sustain(uint8_t sus); \cf2 // 0 - 127             \cf0 \
+	\cf3 void\cf0  setEnv2Release(uint8_t rel); \cf2 // 0 - 127             \cf0 \
+\
+\
+	\cf3 void\cf0  getPreset(uint8_t p);	\cf2 // 0 - 47, 0 to 15 are user presets on EEPROM\
+								// 16 to 47 are \'93factory presets\'94\cf0 \
+	\cf3 void\cf0  savePreset(uint8_t p);	\cf2 // 0 - 15, saves current instrument to EEPROM  \cf0 \
+	\cf3 void\cf0  sendInstrument();		\cf2 // send current instrument via MIDI as controller messages\
+\
+\pard\tx560\pardeftab560\pardirnatural
+\cf4 	BANK_U \cf5 0		\cf2 // User preset bank\cf4 \
+	BANK_A \cf5 16	\cf2 // Preset bank A\cf0 \
+\cf4 	BANK_B \cf5 32	\cf2 // Preset bank B\cf0 \
+\cf4 	BANK_C \cf5 48	\cf2 // Preset bank C\cf0 \
+\pard\tx560\pardeftab560\pardirnatural
+\cf2 \page \
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+//synth parameters as MIDI controller numbers\cf0 \
+\cf2 //synth functions and parameters as MIDI controller numbers\cf0 \
+\pard\tx560\pardeftab560\pardirnatural
+\cf4 	PRESET_SAVE \cf5 0\cf4 \
+	PRESET_RECALL \cf5 1\cf4 \
+\pard\tx560\pardeftab560\pardirnatural
+\cf0 \
+\pard\tx560\pardeftab560\pardirnatural
+\cf4 	IS_12_BIT \cf5 3\cf4 \
+	CUTOFF \cf5 4			\cf4 \
+	ZERO_HZ_FM \cf5 5\cf4 \
+	FM_OCTAVES \cf5 6\cf4 \
+	PORTAMENTO \cf5 8\cf4 \
+	FILTER_TYPE \cf5 9\cf4 \
+\pard\tx560\pardeftab560\pardirnatural
+\cf0 \
+\pard\tx560\pardeftab560\pardirnatural
+\cf4 	LFO1 \cf5 10\cf4 \
+	SEMITONE1 \cf5 11\cf4 \
+	DETUNE1 \cf5 12\cf4 \
+	GAIN1 \cf5 13\cf4 \
+	WAVEFORM1 \cf5 14\cf4 \
+	FM1 \cf5 15\cf4 \
+	FM1_OCTAVES \cf5 16\cf4 \
+	FM1_SOURCE \cf5 17\cf4 \
+	FM1_SHAPE \cf5 18\cf4 \
+	FREQUENCY1 \cf5 19\cf4 \
+\pard\tx560\pardeftab560\pardirnatural
+\cf0 \
+\pard\tx560\pardeftab560\pardirnatural
+\cf4 	LFO2 \cf5 20\cf4 \
+	SEMITONE2 \cf5 21\cf4 \
+	DETUNE2 \cf5 22\cf4 \
+	GAIN2 \cf5 23\cf4 \
+	WAVEFORM2 \cf5 24\cf4 \
+	FM2 \cf5 25\cf4 \
+	FM2_OCTAVES \cf5 26\cf4 \
+	FM2_SOURCE \cf5 27\cf4 \
+	FM2_SHAPE \cf5 28\cf4 \
+	FREQUENCY2 \cf5 29\cf4 \
+\pard\tx560\pardeftab560\pardirnatural
+\cf0 \
+\pard\tx560\pardeftab560\pardirnatural
+\cf4 	LFO3 \cf5 30\cf4 \
+	SEMITONE3 \cf5 31\cf4 \
+	DETUNE3 \cf5 32\cf4 \
+	GAIN3 \cf5 33\cf4 \
+	WAVEFORM3 \cf5 34\cf4 \
+	FM3 \cf5 35\cf4 \
+	FM3_OCTAVES \cf5 36\cf4 \
+	FM3_SOURCE \cf5 37\cf4 \
+	FM3_SHAPE \cf5 38\cf4 \
+	FREQUENCY3 \cf5 39\cf4 \
+\pard\tx560\pardeftab560\pardirnatural
+\cf0 \
+\pard\tx560\pardeftab560\pardirnatural
+\cf4 	CUTOFF_MOD_AMOUNT \cf5 70\cf4 \
+	CUTOFF_SOURCE \cf5 72\cf4 \
+\pard\tx560\pardeftab560\pardirnatural
+\cf0 \
+\pard\tx560\pardeftab560\pardirnatural
+\cf4 	ENV1_VELOCITY \cf5 112\cf4 \
+	ENV1_ENABLE \cf5 113\cf4 \
+	ENV1_ATTACK \cf5 114\cf4 \
+	ENV1_DECAY \cf5 115\cf4 \
+	ENV1_SUSTAIN \cf5 116\cf4 \
+	ENV1_RELEASE \cf5 117\cf4 \
+\pard\tx560\pardeftab560\pardirnatural
+\cf0 \
+\pard\tx560\pardeftab560\pardirnatural
+\cf4 	ENV2_VELOCITY \cf5 122\cf4 \
+	ENV2_ENABLE \cf5 123\cf4 \
+	ENV2_ATTACK \cf5 124\cf4 \
+	ENV2_DECAY \cf5 125\cf4 \
+	ENV2_SUSTAIN \cf5 126\cf4 \
+	ENV2_RELEASE \cf5 127\cf4 \
+\
+}

@@ -84,15 +84,39 @@ private:
     
     seq(int id, func_cb cb, SUBDIV subdiv);
     
-    int _stepsize;
-    SUBDIV _subdiv;
-    int _tempo;
     int _id;
+    SUBDIV _subdiv;
     
     unsigned long lastStep;
     unsigned long stepNum;
     unsigned long step;
 
+    void setsubdiv(SUBDIV v);
+    SUBDIV getsubdiv();
+    
+    bool _stopped;
+    
+    void callback(func_cb cb);
+    
+    func_cb _callback;
+};
+
+
+class noteSequence {
+    
+    friend class MSequencer;
+    
+private:
+    
+    noteSequence(int id, func_cb cb, SUBDIV subdiv);
+    
+    int _id;
+    SUBDIV _subdiv;
+    
+    unsigned long lastStep;
+    unsigned long stepNum;
+    unsigned long step;
+    
     void setsubdiv(SUBDIV v);
     SUBDIV getsubdiv();
     
