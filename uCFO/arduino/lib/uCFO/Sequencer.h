@@ -25,19 +25,36 @@
 
 #define MAX_SEQ 3
 
+#define TICKS_PER_QUARTER_NOTE 96 //
+
 enum SUBDIV {
-    NOTE_1 = 96,
-    NOTE_2 = 48,
-    NOTE_3 = 32,
-    NOTE_4 = 24,
-    NOTE_6 = 16,
-    NOTE_8 = 12,
-    NOTE_12 = 8,
-    NOTE_16 = 6,
-    NOTE_24 = 4,
-    NOTE_32 = 3,
-    NOTE_48 = 2,
-    NOTE_96 = 1
+    NOTE_1 = (TICKS_PER_QUARTER_NOTE * 4),
+    NOTE_1DOT = (TICKS_PER_QUARTER_NOTE * 3),
+    NOTE_2 = (TICKS_PER_QUARTER_NOTE * 2),
+    NOTE_3 = ((TICKS_PER_QUARTER_NOTE * 3) / 2),
+    NOTE_4 = (TICKS_PER_QUARTER_NOTE * 1),
+    NOTE_6 = ((TICKS_PER_QUARTER_NOTE * 2) / 3),
+    NOTE_8 = (TICKS_PER_QUARTER_NOTE / 2),
+    NOTE_12 = (TICKS_PER_QUARTER_NOTE / 3),
+    NOTE_16 = (TICKS_PER_QUARTER_NOTE / 4),
+    NOTE_24 = (TICKS_PER_QUARTER_NOTE / 6),
+    NOTE_32 = (TICKS_PER_QUARTER_NOTE / 8),
+    NOTE_48 = (TICKS_PER_QUARTER_NOTE / 12)
+#if (TICKS_PER_QUARTER_NOTE > 64)
+    ,NOTE_64 = (TICKS_PER_QUARTER_NOTE / 16),
+    NOTE_96 = (TICKS_PER_QUARTER_NOTE / 24),
+    NOTE_128 = (TICKS_PER_QUARTER_NOTE / 32),
+    NOTE_192 = (TICKS_PER_QUARTER_NOTE / 48),
+//    NOTE_256 = (TICKS_PER_QUARTER_NOTE / 64),
+    NOTE_384 = (TICKS_PER_QUARTER_NOTE / 92)
+#endif
+};
+
+enum SEQ_LOOP_TYPE {
+    NO_LOOP = 0,
+    FORWARD_LOOP = 1,
+    BACKWARD_LOOP = 1,
+    PINGPONG = 2
 };
 
 typedef void (*func_cb)(void);
@@ -108,10 +125,17 @@ class noteSequence {
     
 private:
     
-    noteSequence(int id, func_cb cb, SUBDIV subdiv);
+    noteSequence(int id, SUBDIV subdiv, int steps, SEQ_LOOP_TYPE loop);
     
     int _id;
+    int _steps;
+    int _length;
+    int _direction;
     SUBDIV _subdiv;
+    SEQ_LOOP_TYPE _loop;
+
+    int _notes[];
+    int _velocity[];
     
     unsigned long lastStep;
     unsigned long stepNum;
@@ -119,12 +143,17 @@ private:
     
     void setsubdiv(SUBDIV v);
     SUBDIV getsubdiv();
+
+    void setsteps(int steps);
+    int getsteps();
+
+    void setLoopType(int steps);
+    SEQ_LOOP_TYPE getLoopType();
+    
+
     
     bool _stopped;
-    
-    void callback(func_cb cb);
-    
-    func_cb _callback;
+
 };
 
 

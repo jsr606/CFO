@@ -50,9 +50,11 @@ void MSequencer::init(int bpm)
     if(!sequencerTimerRunning) {
         sequencerTimerRunning = true;
         clockStep = 0;
-        sequencerTimer.begin(sequencer_isr, 2500000.0f / _bpm);
+        sequencerTimer.begin(sequencer_isr, 60 * 1000000 / (_bpm * TICKS_PER_QUARTER_NOTE));
     }
 }
+
+
 
 
 
