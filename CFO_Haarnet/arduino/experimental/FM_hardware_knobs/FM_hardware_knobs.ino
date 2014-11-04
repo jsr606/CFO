@@ -1,5 +1,10 @@
+#define MIDI_CHANNEL 1
+
+#include <spi4teensy3.h>
+#include <EEPROM.h>
 #include <Wire.h>
 #include "Adafruit_TCS34725.h"
+#include <Haarnet.h>
 
 // adafruit RGB sensor setup
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
@@ -43,6 +48,12 @@ void setup() {
   *portConfigRegister(bodySwitch3) = PORT_PCR_MUX(1) | PORT_PCR_PE;
   
   if (tcs.begin()) Serial.println("found RGB color sensor");
+  
+  Music.init();
+  //disableEnvelope1();
+  //disableEnvelope2();
+  Music.getPreset(16);
+  Music.noteOn(48,127);
 }
 
 void loop() {
@@ -71,6 +82,10 @@ void loop() {
   analogWrite(LED2, 0);
   
   int p1 = analogRead(pot1);
+  
+  float gain = map(pot1,0,1023,0,1000)/1000;
+  setGain(gain); // 0.0 - 1.0
+  
   int p2 = analogRead(pot2);
   int p3 = analogRead(pot3);
   Serial.print(p1);
@@ -117,7 +132,7 @@ int sampleMic(int samples) {
   // audio waves are centered around 2,5V (not 3,3V/2)
   // this means readings are centered around 1023*2,5/3,3=775, not 512 which would be the normal
   
-  int totalVol = 0;
+  long totalVol = 0;
   int samplesDone = 0;
   while (samplesDone < samples) {
     
