@@ -24,6 +24,9 @@
 #pragma once
 
 #define MAX_SEQ 3
+#define INSTR_SEQ 4
+#define ISEQ_NBR_STEPS 32
+
 
 #define TICKS_PER_QUARTER_NOTE 96 //
 
@@ -53,13 +56,14 @@ enum SUBDIV {
 enum SEQ_LOOP_TYPE {
     NO_LOOP = 0,
     FORWARD_LOOP = 1,
-    BACKWARD_LOOP = 1,
-    PINGPONG = 2
+    BACKWARD_LOOP = 2,
+    PINGPONG = 3
 };
 
 typedef void (*func_cb)(void);
 
 class seq;
+class iseq;
 
 class MSequencer {
 public:
@@ -93,6 +97,40 @@ private:
     
 };
 
+
+class iSequencer {
+public:
+    void init(int bpm);
+    void update();
+    
+    int newSequence(SUBDIV subdiv, int steps, SEQ_LOOP_TYPE loop);
+    
+    bool stopSequence(int index);
+    bool startSequence(int index);
+    
+    bool setSequenceSubdiv(int index, SUBDIV subdiv);
+    
+    int getSequenceSubdiv(int index);
+    
+//    bool setCallback(int index, func_cb cb);
+//    func_cb getCallback(int index);
+    
+    unsigned long clockStep;
+    
+    void setbpm(int v);
+    int getbpm();
+    
+    
+    
+private:
+    iseq* _sequences[INSTR_SEQ];
+    int _bpm;
+    int _bpmInClockSteps;
+    
+    
+};
+
+
 class seq {
     
     friend class MSequencer;
@@ -119,13 +157,13 @@ private:
 };
 
 
-class noteSequence {
+class iseq {
     
-    friend class MSequencer;
+    friend class iSequencer;
     
 private:
     
-    noteSequence(int id, SUBDIV subdiv, int steps, SEQ_LOOP_TYPE loop);
+    iseq(int id, SUBDIV subdiv, int steps, SEQ_LOOP_TYPE loop);
     
     int _id;
     int _steps;
@@ -133,9 +171,13 @@ private:
     int _direction;
     SUBDIV _subdiv;
     SEQ_LOOP_TYPE _loop;
+    
+    int indx;
 
     int _notes[];
     int _velocity[];
+    int _ccNumbers[];
+    int _ccValues[];
     
     unsigned long lastStep;
     unsigned long stepNum;
@@ -147,8 +189,8 @@ private:
     void setsteps(int steps);
     int getsteps();
 
-    void setLoopType(int steps);
-    SEQ_LOOP_TYPE getLoopType();
+    void setlooptype(SEQ_LOOP_TYPE loop);
+    SEQ_LOOP_TYPE getlooptype();
     
 
     
@@ -158,3 +200,4 @@ private:
 
 
 extern MSequencer Sequencer;
+extern iSequencer iSeq;

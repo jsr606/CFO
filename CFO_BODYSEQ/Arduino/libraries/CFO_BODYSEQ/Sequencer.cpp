@@ -22,33 +22,137 @@
  */
 
 #include "Sequencer.h"
+#include <spi4teensy3.h>
 #include <Arduino.h>
 
 MSequencer Sequencer;
+iSequencer iSeq; // instrument sequencer
+//extern iSeq;
+//int iSeq0,iSeq1;
+//iSeq.iSeqInit(120);
 
-void MSequencer::init()
+IntervalTimer sequencerTimer;
+IntervalTimer iSeqTimer;
+
+boolean sequencerTimerRunning = false;
+boolean iSeqTimerRunning = false;
+
+#ifndef SAMPLE_RATE
+unsigned int sampleRate = 48000;
+#endif
+
+void sequencer_isr(void)
 {
+    Sequencer.clockStep++;
+}
+
+void iSeq_isr(void)
+{
+    iSeq.clockStep++;
+}
+
+
+void MSequencer::init(int bpm)
+{
+    setbpm(bpm);
     for(int i = 0; i < MAX_SEQ; i++) {
         _sequences[i] = NULL;
     }
+    if(!sequencerTimerRunning) {
+        sequencerTimerRunning = true;
+        clockStep = 0;
+        sequencerTimer.begin(sequencer_isr, 60 * 1000000 / (_bpm * TICKS_PER_QUARTER_NOTE));
+    }
 }
+
+
+void iSequencer::init(int bpm)
+{
+    for(int i = 0; i < ISEQ_NBR_STEPS; i++) {
+        //        _notes[i] = i;
+        //        _velocity[i] = 127;
+        //        _CCnumbers[i] = 100;
+        //        _CCvalues[i] = 0;
+    }
+
+    
+
+//
+//    int iSeq_indx0 = 0;
+//    int iSeq_indx1 = 0;
+//#define ISEQ_NBR_STEPS 32
+//    const int iSeq_nbr_notes = 32;
+//    const int iSeq_nbr_steps = 32;
+//    
+//    int iSeq_notes[ISEQ_NBR_STEPS];
+//    int iSeq_velocity[ISEQ_NBR_STEPS];
+//    int iSeq_midi_numbers[ISEQ_NBR_STEPS];
+//    int iSeq_midi_values[ISEQ_NBR_STEPS];
+//    
+//    void iSeqNote() {
+//        //    Music.noteOn(iSeq_notes[iSeq_indx0++] + Music.notePlayed, Music.velocityPlayed);
+//        //    if(iSeq_indx0 >= iSeq_nbr_notes) iSeq_indx0 = 0;
+//    }
+//    
+//    void iSeqController() {
+//        //    Midi.controller(MIDI_CHANNEL - 1, iSeq_midi_numbers[iSeq_indx1], iSeq_midi_values[iSeq_indx1]);
+//        //    iSeq_indx1++;
+//        //    if(iSeq_indx1 >= iSeq_nbr_steps) iSeq_indx1 = 0;
+//    }
+//    
+//    for(int i = 0; i < ISEQ_NBR_STEPS; i++) {
+//        //        iSeq_notes[i] = i;
+//        //        iSeq_velocity[i] = 127;
+//        //        iSeq_midi_numbers[i] = 100;
+//        //        iSeq_midi_values[i] = 0;
+//    }
+    
+    setbpm(bpm);
+    for(int i = 0; i < INSTR_SEQ; i++) {
+        _sequences[i] = NULL;
+    }
+    if(!iSeqTimerRunning) {
+        iSeqTimerRunning = true;
+        clockStep = 0;
+        iSeqTimer.begin(iSeq_isr, 60 * 1000000 / (_bpm * TICKS_PER_QUARTER_NOTE));
+    }
+}
+
+
 
 void MSequencer::update()
 {
     for(int i = 0; i < MAX_SEQ; i++) {
         seq* s = _sequences[i];
-        if(s == NULL || s->_stoped) continue;
-        
-        unsigned long tick = millis();
-        if(tick - s->ltick > s->_tempo) {
+        if(s == NULL || s->_stopped) continue;
+        if(clockStep >= s -> step) {
             //boom!
-            s->_callback();
-            s->ltick = millis();
+            s->_callback(); // add to queue???
+            s->step += s -> _subdiv;
+//            Serial.println(s -> step);
         }
     }
+    // queue goes here
 }
 
-int MSequencer::newSequence(int bpm, func_cb cb, int subdiv)
+
+void iSequencer::update()
+{
+    for(int i = 0; i < INSTR_SEQ; i++) {
+        iseq* s = _sequences[i];
+        if(s == NULL || s->_stopped) continue;
+        if(clockStep >= s -> step) {
+            //boom!
+//            s->_callback(); // add to queue???
+            s->step += s -> _subdiv;
+//            Serial.println(s -> step);
+        }
+    }
+    // queue goes here
+}
+
+
+int MSequencer::newSequence(func_cb cb, SUBDIV subdiv)
 {
     int j = -1;
     for(int i = 0; i < MAX_SEQ; i++) {
@@ -56,17 +160,39 @@ int MSequencer::newSequence(int bpm, func_cb cb, int subdiv)
     }
     
     if(j >= 0) {
-        seq* s = new seq(bpm, cb, subdiv);
+        seq* s = new seq(j, cb, subdiv);
         _sequences[j] = s;
+        Serial.print("Created sequence ");
+        Serial.println(j);
     }
     
     return j;
 }
 
+
+int iSequencer::newSequence(SUBDIV subdiv, int steps, SEQ_LOOP_TYPE loop)
+{
+    int j = -1;
+    for(int i = 0; i < MAX_SEQ; i++) {
+        if(_sequences[i] == NULL) j = i;
+    }
+    
+    if(j >= 0) {
+        iseq* s = new iseq(j, subdiv, steps, loop);
+        _sequences[j] = s;
+        Serial.print("Created sequence ");
+        Serial.println(j);
+    }
+    
+    return j;
+}
+
+
 bool MSequencer::stopSequence(int index)
 {
     if(index >= 0 && index < MAX_SEQ) {
-        _sequences[index]->_stoped = true;
+        _sequences[index]->_stopped = true;
+//        _sequences[index]-> step = 0;
         return true;
     }
     return false;
@@ -75,37 +201,43 @@ bool MSequencer::stopSequence(int index)
 bool MSequencer::startSequence(int index)
 {
     if(index >= 0 && index < MAX_SEQ && _sequences[index] != NULL) {
-        _sequences[index]->_stoped = false;
-        _sequences[index]->ltick = millis();
+        _sequences[index]->_stopped = false;
+        _sequences[index]-> step = 0;
         return true;
     }
     return false;
 }
 
-bool MSequencer::setSequenceBpm(int index, int bpm)
+
+void MSequencer::setbpm(int bpm)
 {
-    if(index >= 0 && index < MAX_SEQ && _sequences[index] != NULL) {
-        _sequences[index]->setbpm(bpm);
-        return true;
-    }
-    return false;
+    _bpm = bpm;
+    _bpmInClockSteps = _bpm * 24;
 }
 
-bool MSequencer::setSequenceSubdiv(int index, int subdiv)
+int MSequencer::getbpm()
+{
+    return _bpm;
+}
+
+void iSequencer::setbpm(int bpm)
+{
+    _bpm = bpm;
+    _bpmInClockSteps = _bpm * 24;
+}
+
+int iSequencer::getbpm()
+{
+    return _bpm;
+}
+
+bool MSequencer::setSequenceSubdiv(int index, SUBDIV subdiv)
 {
     if(index >= 0 && index < MAX_SEQ && _sequences[index] != NULL) {
         _sequences[index]->setsubdiv(subdiv);
         return true;
     }
     return false;
-}
-
-int MSequencer::getSequenceBpm(int index)
-{
-    if(index >= 0 && index < MAX_SEQ && _sequences[index] != NULL) {
-        return _sequences[index]->getbpm();
-    }
-    return -1;
 }
 
 int MSequencer::getSequenceSubdiv(int index)
@@ -136,35 +268,21 @@ func_cb MSequencer::getCallback(int index)
 
 // seq
 
-seq::seq(int bpm, func_cb cb, int subdiv) : _stoped(true)
+seq::seq(int id, func_cb cb, SUBDIV subdiv) : _id(id), _stopped(true)
 {
     setsubdiv(subdiv);
-    setbpm(bpm);
     callback(cb);
 }
 
-void seq::setsubdiv(int v)
+void seq::setsubdiv(SUBDIV v)
 {
     _subdiv = v;
-    _tempo = int( (60000.0 / (float)_bpm) * (4.0 / (float)_subdiv) );
     
 }
 
-int seq::getsubdiv()
+SUBDIV seq::getsubdiv()
 {
     return _subdiv;
-}
-
-
-void seq::setbpm(int v)
-{
-    _bpm = v;
-    _tempo = int( (60000.0 / (float)v) * (4.0 / (float)_subdiv) );
-}
-
-int seq::getbpm()
-{
-    return _bpm;
 }
 
 void seq::callback(func_cb cb)
@@ -172,6 +290,47 @@ void seq::callback(func_cb cb)
     _callback = cb;
 }
 
+// iseq
+
+iseq::iseq(int id, SUBDIV subdiv, int steps, SEQ_LOOP_TYPE loop) : _id(id), _stopped(true)
+{
+    setsubdiv(subdiv);
+    setsteps(steps);
+    setlooptype(loop);
+}
+
+void iseq::setsteps(int steps)
+{
+    _steps = steps;
+    
+}
+
+int iseq::getsteps()
+{
+    return _steps;
+    
+}
+
+void iseq::setsubdiv(SUBDIV v)
+{
+    _subdiv = v;
+    
+}
+
+SUBDIV iseq::getsubdiv()
+{
+    return _subdiv;
+}
+
+void iseq::setlooptype(SEQ_LOOP_TYPE loop)
+{
+    _loop = loop;
+}
+
+SEQ_LOOP_TYPE iseq::getlooptype()
+{
+    return _loop;
+}
 
 
 

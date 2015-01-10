@@ -219,7 +219,7 @@
 #define SEQ_ON 88
 
 #define CFO_COMMAND 90
-#define SEQ_STEP_FORWARD 0
+#define SEQ_STEP_FORWARD 91
 
 
 #define ENV0_VELOCITY 102
@@ -242,6 +242,20 @@
 #define ENV2_DECAY 125
 #define ENV2_SUSTAIN 126
 #define ENV2_RELEASE 127
+
+
+//int iSeq0,iSeq1;
+//
+//int iSeq_indx0 = 0;
+//int iSeq_indx1 = 0;
+//#define ISEQ_NBR_STEPS 32
+//const int iSeq_nbr_notes = 32;
+//const int iSeq_nbr_steps = 32;
+//
+//int iSeq_notes[ISEQ_NBR_STEPS];
+//int iSeq_velocity[ISEQ_NBR_STEPS];
+//int iSeq_midi_numbers[ISEQ_NBR_STEPS];
+//int iSeq_midi_values[ISEQ_NBR_STEPS];
 
 
 // MMusic class for handling sound engine
@@ -413,6 +427,11 @@ public:
 	int64_t derivativeOfOscil1;
 	int64_t derivativeOfOscil2;
 	int64_t derivativeOfOscil3;
+    
+    // NOTE VARIABLE
+    uint8_t notePlayed;
+    uint8_t velocityPlayed;
+
 
 	
 private:
@@ -595,8 +614,6 @@ private:
 	int32_t velPeak2;
 	
 	
-	// NOTE VARIABLE
-	uint8_t notePlayed;
 	
 	// final sample that goes to the DAC
 	volatile int64_t sample;
@@ -640,7 +657,13 @@ public:
     
     void sendStep();
     
+    void iSeqNote();
+    void iSeqController();
+    
 	uint8_t midiChannel;
+    uint16_t frequency;
+    uint8_t notePlayed;
+    uint8_t velocityPlayed;
 
 private:
 	
@@ -649,8 +672,6 @@ private:
 	uint8_t midiBuffer[3];
 	
 	int midiBufferIndex;
-	uint16_t frequency;
-	uint8_t notePlayed;
 };
 
 

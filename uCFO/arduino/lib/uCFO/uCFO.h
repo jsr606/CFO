@@ -26,8 +26,8 @@
 
 #include <Arduino.h>
 #include <spi4teensy3.h>
-#include "uSynth.h"
 #include "Sequencer.h"
+#include "uSynth.h"
 
 
 ///////////////////////////////////////////////////////////////////////

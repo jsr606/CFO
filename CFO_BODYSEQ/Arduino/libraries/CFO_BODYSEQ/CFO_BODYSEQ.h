@@ -27,6 +27,15 @@
 #include <Arduino.h>
 #include <spi4teensy3.h>
 #include "BodyseqSynth.h"
+#include "Sequencer.h"
+
+int notes[8][16];
+int slides[8][16];
+
+int track, step, note;
+
+
+
 
 ///////////////////////////////////////////////////////////////////////
 // THE BELOW FUNCTIONS ARE NEEDED FOR THE MUSIC PART TO RESPOND TO MIDI

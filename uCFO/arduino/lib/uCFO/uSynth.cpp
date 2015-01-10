@@ -29,6 +29,8 @@ MMusic Music;
 
 MMidi Midi;
 
+
+
 const uint16_t sineTable[] = { 
 #include <FrictionSineTable16bitHex.inc>
 };
@@ -129,7 +131,6 @@ void synth_isr(void) {
 	Music.envelope1();
 	Music.envelope2();
     if(Music.is12bit) Music.synthInterrupt12bitSineFM();
-//	if(Music.is12bit) Music.phaseDistortionOscillator();
 //  if(Music.is12bit) Music.synthInterrupt12bitSawFM();
 	else Music.synthInterrupt8bitFM();
 		
@@ -140,6 +141,8 @@ void synth_isr(void) {
     if(Music.lowpass24dB) Music.filterLP24dB();
     if(Music.highpass24dB) Music.filterHP24dB();
     if(Music.moogLadder) Music.filterMoogLadder();
+    
+//    iSeq.iSeqUpdate();
 
 }
 
@@ -447,7 +450,6 @@ void MMusic::output2DAC() {
 
 
 
-
 /////////////////////////////////////
 //
 //	INITIALIZING FUNCTION
@@ -459,6 +461,7 @@ void MMusic::spi_setup()
 {
     spi4teensy3::init(0,0,0);
 	pinMode(DAC_CS, OUTPUT);
+    Serial.println("SPI set up");
 }
 
 
@@ -763,13 +766,16 @@ void MMusic::init()
 	setCutoffModSource(2);
 	setCutoffModAmount(BIT_16);
 	setCutoffModDirection(1);
-	
+
+    
 	cli();
 	synthTimer.begin(synth_isr, 1000000.0 / sampleRate);
+    
 	sei();
     
+    
+    
 }
-
 
 
 
@@ -1719,6 +1725,7 @@ void MMusic::noteOn(uint8_t note, uint8_t vel)
 	setEnv1VelPeak(vel);
 	setEnv2VelPeak(vel);
 	notePlayed = note;
+    velocityPlayed = vel;
 	frequency16bit = hertzTable[notePlayed];
 	setFrequency(frequency16bit);
 	//setFrequency1(frequency16bit);
@@ -1737,6 +1744,7 @@ void MMusic::noteOn(uint8_t note)
 	setEnv1VelPeak(vel);
 	setEnv2VelPeak(vel);
 	notePlayed = note;
+    velocityPlayed = vel;
 	frequency16bit = hertzTable[notePlayed];
 	setFrequency(frequency16bit);
 	//setFrequency1(frequency16bit);
@@ -2089,16 +2097,16 @@ void MMidi::midiHandler() {
 
 
 void MMidi::noteOff(uint8_t channel, uint8_t note, uint8_t vel) {
-    Serial.print("NoteOff received on channel: ");
-    Serial.println(channel, HEX);
+//    Serial.print("NoteOff received on channel: ");
+//    Serial.println(channel, HEX);
 
     Music.noteOff(note);
 }
 
 
 void MMidi::noteOn(uint8_t channel, uint8_t note, uint8_t vel) {
-    Serial.print("NoteOn received on channel: ");
-    Serial.println(channel, HEX);
+//    Serial.print("NoteOn received on channel: ");
+//    Serial.println(channel, HEX);
     Music.noteOn(note, vel);
 }
 
@@ -2304,8 +2312,8 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			Music.setFM3Shape(value);
 			break;
 		case ENV1_ENABLE:
-//			if(value<64) Music.enableEnvelope1();
-//			else Music.disableEnvelope1();
+			if(value) Music.enableEnvelope1();
+			else Music.disableEnvelope1();
 			break;
 		case ENV1_ATTACK:
 			Music.setEnv1Attack(value);
@@ -2320,8 +2328,8 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			Music.setEnv1Release(value);
 			break;
 		case ENV2_ENABLE:
-//			if(value<64) Music.enableEnvelope2();
-//			else Music.disableEnvelope2();
+			if(value) Music.enableEnvelope2();
+			else Music.disableEnvelope2();
 			break;
 		case ENV2_ATTACK:
 			Music.setEnv2Attack(value);

@@ -133,7 +133,7 @@
 #define MOD_OSC3 5
 
 // parameters for presets || the two parameters below should multiply to 2048.
-#define MAX_PRESETS 16
+#define MAX_PRESETS 8
 #define PRESET_SIZE 128
 
 #define BANK_U 0
