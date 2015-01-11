@@ -26,8 +26,8 @@
 
 #include <Arduino.h>
 #include <spi4teensy3.h>
-#include "BodyseqSynth.h"
 #include "Sequencer.h"
+#include "BodyseqSynth.h"
 
 int notes[8][16];
 int slides[8][16];
@@ -47,8 +47,9 @@ void OnNoteOn(byte channel, byte note, byte velocity) {
     }
     channel = channel - 1;
     MIDI_SERIAL.write(byte(0x90 | (channel & 0x0F)));
-    MIDI_SERIAL.write(0x7F & note);
-    MIDI_SERIAL.write(0x7F & velocity);
+    MIDI_SERIAL.write(byte(0x7F & note));
+    MIDI_SERIAL.write(byte(0x7F & velocity));
+//    Serial.write("sent MIDI noteOn on MIDI OUT????");
 }
 
 void OnNoteOff(byte channel, byte note, byte velocity) {
@@ -57,8 +58,8 @@ void OnNoteOff(byte channel, byte note, byte velocity) {
     }
     channel = channel - 1;
     MIDI_SERIAL.write(byte(0x80 | (channel & 0x0F)));
-    MIDI_SERIAL.write(0x7F & note);
-    MIDI_SERIAL.write(0x7F & velocity);
+    MIDI_SERIAL.write(byte(0x7F & note));
+    MIDI_SERIAL.write(byte(0x7F & velocity));
 }
 
 void OnControlChange(byte channel, byte control, byte value) {
@@ -67,8 +68,30 @@ void OnControlChange(byte channel, byte control, byte value) {
     }
     channel = channel - 1;
     MIDI_SERIAL.write(byte(0xB0 | (channel & 0x0F)));
-    MIDI_SERIAL.write(0x7F & control);
-    MIDI_SERIAL.write(0x7F & value);
+    MIDI_SERIAL.write(byte(0x7F & control));
+    MIDI_SERIAL.write(byte(0x7F & value));
+}
+
+void RealTimeSystem(byte realtimebyte) {
+    if(realtimebyte == MIDI_CLOCK) {
+        Sequencer.midiClock();
+        if(Sequencer.getMidiClock()) MIDI_SERIAL.write(byte(MIDI_CLOCK));
+    }
+    
+    if(realtimebyte == MIDI_START) {
+        Sequencer.midiStart();
+        if(Sequencer.getMidiClock()) MIDI_SERIAL.write(byte(MIDI_START));
+    }
+    
+    if(realtimebyte == MIDI_CONTINUE) {
+        Sequencer.midiContinue();
+        if(Sequencer.getMidiClock()) MIDI_SERIAL.write(byte(MIDI_CONTINUE));
+    }
+    
+    if(realtimebyte == MIDI_STOP) {
+        Sequencer.midiStop();
+        if(Sequencer.getMidiClock()) MIDI_SERIAL.write(byte(MIDI_STOP));
+    }
 }
 
 #endif // close guard CFO_BODYSEQ_h

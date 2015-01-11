@@ -28,7 +28,7 @@
 #define ISEQ_NBR_STEPS 32
 
 
-#define TICKS_PER_QUARTER_NOTE 96 //
+#define TICKS_PER_QUARTER_NOTE 24 //
 
 enum SUBDIV {
     NOTE_1 = (TICKS_PER_QUARTER_NOTE * 4),
@@ -49,7 +49,7 @@ enum SUBDIV {
     NOTE_128 = (TICKS_PER_QUARTER_NOTE / 32),
     NOTE_192 = (TICKS_PER_QUARTER_NOTE / 48),
 //    NOTE_256 = (TICKS_PER_QUARTER_NOTE / 64),
-    NOTE_384 = (TICKS_PER_QUARTER_NOTE / 92)
+    NOTE_384 = (TICKS_PER_QUARTER_NOTE / 96)
 #endif
 };
 
@@ -57,7 +57,8 @@ enum SEQ_LOOP_TYPE {
     NO_LOOP = 0,
     FORWARD_LOOP = 1,
     BACKWARD_LOOP = 2,
-    PINGPONG = 3
+    PINGPONG = 3,
+    STEP = 4
 };
 
 typedef void (*func_cb)(void);
@@ -68,12 +69,22 @@ class iseq;
 class MSequencer {
 public:
     void init(int bpm);
+    void timerClock();
+    void midiClock();
+    void tick();
     void update();
+    void midiStart();
+    void midiContinue();
+    void midiStop();
+    void sequencerStart();
+    void sequencerContinue();
+    void sequencerStop();
     
     int newSequence(func_cb cb, SUBDIV subdiv);
     
     bool stopSequence(int index);
     bool startSequence(int index);
+    bool continueSequence(int index);
 
     bool setSequenceSubdiv(int index, SUBDIV subdiv);
     
@@ -81,8 +92,9 @@ public:
     
     bool setCallback(int index, func_cb cb);
     func_cb getCallback(int index);
-
-    unsigned long clockStep;
+    
+    void setMidiClock(bool mc);
+    bool getMidiClock();
     
     void setbpm(int v);
     int getbpm();
@@ -92,7 +104,12 @@ public:
 private:
     seq* _sequences[MAX_SEQ];
     int _bpm;
-    int _bpmInClockSteps;
+    int _bpmInClockTicks;
+    bool _midiClock;
+    unsigned long clockTick;
+    unsigned long timeNow;
+    unsigned long lastTime;
+    unsigned long tickTime;
 
     
 };

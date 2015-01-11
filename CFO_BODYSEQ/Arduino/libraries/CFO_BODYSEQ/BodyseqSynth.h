@@ -27,6 +27,7 @@
 #include "MCP4251.h"
 #include <EEPROM.h>
 #include <Math.h>
+#include "Sequencer.h"
 
 #ifndef Synth_h // include guard
 #define Synth_h
@@ -141,6 +142,13 @@
 #define BANK_B 32
 #define BANK_C 48
 
+
+// Constants defined for MIDI CLOCK
+#define MIDI_CLOCK 0xF8     // 248
+#define MIDI_START 0xFA     // 250;
+#define MIDI_CONTINUE 0xFB  // 251;
+#define MIDI_STOP 0xFC      // 252;
+
 //synth functions and parameters as MIDI controller numbers
 #define PRESET_SAVE 0
 #define PRESET_RECALL 1
@@ -186,6 +194,8 @@
 #define FM3_SHAPE 38
 #define FREQUENCY3 39
 
+#define CUTOFF 78
+#define RESONANCE 79
 #define CUTOFF_MOD_AMOUNT 70
 #define CUTOFF_MOD_DIRECTION 71
 #define CUTOFF_SOURCE 72
@@ -195,17 +205,27 @@
 #define RESONANCE_SOURCE 76
 #define RESONANCE_SHAPE 77
 
-#define SEQ_WRITE_POSITION 80
-#define SEQ_WRITE_VALUE 81
-#define SEQ_START 82
-#define SEQ_STOP 83
-#define SEQ_PAUSE 84
-#define SEQ_JUMP_POSITION 85
-#define SEQ_BPM 86
-#define SEQ_SYNC 87
-#define SEQ_ON 88
+
+#define SEQ_WRITE_ISEQ 80
+#define SEQ_WRITE_SEQUENCER 81
+#define SEQ_WRITE_POSITION 82
+#define SEQ_WRITE_VALUE 83
+#define SEQ_START 84
+#define SEQ_STOP 85
+#define SEQ_PAUSE 86
+#define SEQ_JUMP_POSITION 87
+#define SEQ_BPM 88
+#define SEQ_SYNC 89
+#define SEQ_ON 89
+#define SEQ_ON 89
+#define SEQ_LOOP 89 // NO_LOOP, LOOP, PINGPONG, BACKWARDS, STEP
+#define SEQ_ON 89
+#define SEQ_ON 89
+#define SEQ_ON 89
+
 
 #define CFO_COMMAND 90
+#define CFO_LIGHT_LED 91
 #define SEQ_STEP_FORWARD 0
 
 
@@ -233,7 +253,8 @@
 
 // MMusic class for handling sound engine
 
-class MMusic {    
+class MMusic {
+    friend class MSequencer;
 public:
 	
 	// INITIALIZER
@@ -383,6 +404,7 @@ public:
     void setCommandFlag(uint8_t flag);
     void clearCommandFlag(uint8_t flag);
     bool checkCommandFlag(uint8_t flag);
+    void lightLED(uint8_t l);
 		
 	bool osc1LFO;
 	bool osc2LFO;
@@ -400,6 +422,7 @@ public:
 	int64_t derivativeOfOscil1;
 	int64_t derivativeOfOscil2;
 	int64_t derivativeOfOscil3;
+    
 
 	
 private:
@@ -606,12 +629,14 @@ extern MMusic Music;
 // MMidi class for handling MIDI implementation
 
 class MMidi {
+    friend class MSequencer;
 public:
 	void init();
 	void checkSerialMidi();
     void setChannel(uint8_t channel);
 	
 	void midiHandler();
+    void midiRealTimeHandler(uint8_t data);
 	void noteOff(uint8_t channel, uint8_t note, uint8_t vel);
 	void noteOn(uint8_t channel, uint8_t note, uint8_t vel);
 	void aftertouch(uint8_t channel, uint8_t note, uint8_t pressure);
@@ -625,7 +650,10 @@ public:
     void sendNoteOn(uint8_t note, uint8_t vel);
     void sendController(uint8_t number, uint8_t value);
     
-    void sendStep();
+    void sendClock();
+    void sendStart();
+    void sendContinue();
+    void sendStop();
     
 	uint8_t midiChannel;
 

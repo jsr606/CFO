@@ -14,8 +14,13 @@
 #include <EEPROM.h>
 #include <CFO_BODYSEQ.h>
 
+boolean playStep = false;
+int ticksPerStep = 6;
+
 const int seqLed [] = {3,4,5,6,7,8,9,10};
 int seqLedVal [] = {0,0,0,0,0,0,0,0};
+
+uint8_t ledValue = 0;
 
 const int statusLed1 = 13;
 const int buttonPin [] = {11,12,2}; 
@@ -25,7 +30,7 @@ const int bodySwitch [] = {A2,A3,A4,A5,A6,A7,A8,A9};
 
 unsigned long lastPrint = millis();
 
-boolean sequenceRunning = true;
+boolean sequencerRunning = true;
 
 float maxBodyReading = 0;
 float maxBodyFadeout = 0.9999;
@@ -36,6 +41,7 @@ int inputFreq = 10;
 unsigned long lastInput = millis();
 
 int seqStep = 0;
+long seqTick = -1;
 int seqLength = 7;
 int seqNote[] = {-1,-1,0,-1,12,-1,-1,-1,-1,-1,0,-1,24,-1,-1,-1,-1,-1,0,-1,36,-1,-1,-1,-1,-1,0,-1,0,-1,-1,-1,-1,-1,0,-1,12,-1,-1,-1,-1,-1,0,-1,24,-1,-1,-1,-1,-1,0,-1,36,-1,-1,-1,-1,-1,0,-1,0,-1,-1,-1};
 int activeSeq = 0, seqStart = 0, seqEnd = 7;
@@ -81,7 +87,8 @@ void setup() {
   usbMIDI.setHandleNoteOff(OnNoteOff);
   usbMIDI.setHandleNoteOn(OnNoteOn);
   usbMIDI.setHandleControlChange(OnControlChange);
-
+  usbMIDI.setHandleRealTimeSystem(RealTimeSystem);
+  
   analogReadAveraging(32);
 
   Serial.begin(9600);
@@ -100,6 +107,8 @@ void setup() {
   for (int i = 0; i<8; i++) {
     pinMode(seqLed[i], OUTPUT);
   }
+  
+  Music.setResonance(255);
 
   startupAnimation();
   sampleAverageNoise();  
@@ -108,6 +117,14 @@ void setup() {
 void loop() {
   // check for incoming USB MIDI messages
   usbMIDI.read();
+  Midi.checkSerialMidi();
+  if (sequencerRunning) updateSequence();
+
+//  MIDI_SERIAL.write(byte(0xB0 | (MIDI_CHANNEL-1 & 0x0F)));
+//  MIDI_SERIAL.write(0x7F & CFO_LIGHT_LED);
+//  MIDI_SERIAL.write(0x7F & ledValue++);
+//  
+//  if(ledValue > 15) ledValue = 0;
 
   if (lastInput + inputFreq < millis()) {
     // check user input
@@ -164,7 +181,6 @@ void loop() {
     lastInput = millis();
   }
 
-  if (sequenceRunning) updateSequence();
   if (potsMoved) setCutoffFromPots();
 }
 
@@ -317,7 +333,7 @@ void changeMode() {
 }
 
 void changePreset() {
-  int newPreset = map(analogRead(pot2),0,1023,63,0);
+  int newPreset = map(analogRead(pot2),0,1023,0,24);
   if (preset != newPreset) { // only do something if preset has changed
     // NB! user preset 0-16 might be empty, resulting in crazy sounds!
     if (debug) Serial.print("new preset ");
@@ -329,30 +345,32 @@ void changePreset() {
 
 void updateSequence() {
 
-  if (lastStep + stepTime < millis()) {
-
-    seqStep++;
-    if (seqStep > seqEnd) seqStep = seqStart;
-
-    int note = activeSeq*8+seqStep;  
-
-    if (seqNote[note] != -1) {
-      Music.noteOn(baseNote+seqNote[note]);
-    }
-    lastStep = millis();
-
-  }
-
+//  if (lastStep + stepTime < millis()) {
+//
+//    seqStep++;
+//    if (seqStep > seqEnd) seqStep = seqStart;
+//
+//    int note = activeSeq*8+seqStep;  
+//
+//    if (seqNote[note] != -1) {
+//      Music.noteOn(baseNote+seqNote[note]);
+//      Midi.sendNoteOn(baseNote+seqNote[note], 127);
+//    }
+//    lastStep = millis();
+//
+//  }
+  
+  if(playStep) playNote(); 
   updateLEDs();
 
-  int blinkTime = max(stepTime/5,100);
-
-  if (lastStep + blinkTime < millis()) {
-    digitalWrite(seqLed[seqStep], HIGH);
-  }
-  if (lastStep + stepTime - blinkTime < millis()) {
-    digitalWrite(seqLed[seqStep], LOW);
-  }  
+//  int blinkTime = max(stepTime/5,100);
+//
+//  if (lastStep + blinkTime < millis()) {
+//    digitalWrite(seqLed[seqStep], HIGH);
+//  }
+//  if (lastStep + stepTime - blinkTime < millis()) {
+//    digitalWrite(seqLed[seqStep], LOW);
+//  }  
 }
 
 
@@ -461,3 +479,46 @@ void readButtons() {
 }
 
 
+void RealTimeSystem(byte realtimebyte) { 
+  if(realtimebyte == MIDI_CLOCK) {
+    seqTick++;
+    if(seqTick == ticksPerStep) {
+      seqTick = 0;
+      playStep = true;
+    }
+  } 
+
+  if(realtimebyte == MIDI_START) {
+    seqTick = 0;
+    seqStep = 0;
+    playStep = true;
+    digitalWrite(13, HIGH); 
+  } 
+
+  if(realtimebyte == MIDI_CONTINUE) {
+    playStep = true;
+    digitalWrite(13, HIGH); 
+  } 
+
+  if(realtimebyte == MIDI_STOP) { 
+    Music.noteOff();
+    digitalWrite(13, LOW); 
+  } 
+}
+
+void playNote() {
+
+    if (seqStep > seqEnd) seqStep = seqStart;
+
+    int note = activeSeq*8+seqStep;  
+
+    if (seqNote[note] != -1) {
+      Music.noteOn(baseNote+seqNote[note]);
+      Midi.sendNoteOn(baseNote+seqNote[note], 127);
+    }
+    seqStep++;
+    playStep = false;
+
+    updateLEDs();
+
+}

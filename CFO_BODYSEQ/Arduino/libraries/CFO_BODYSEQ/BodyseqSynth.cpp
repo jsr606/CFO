@@ -31,6 +31,7 @@ MMusic Music;
 
 MMidi Midi;
 
+
 const uint16_t sineTable[] = { 
 #include <FrictionSineTable16bitHex.inc>
 };
@@ -2211,6 +2212,18 @@ bool MMusic::checkCommandFlag(uint8_t flag)
 }
 
 
+void MMusic::lightLED(uint8_t l)
+{
+    if(2 < l && l < 11 ) {
+        digitalWriteFast(l, HIGH);
+    }
+    else {
+        for(int i=3; i<11; i++) {
+            digitalWriteFast(l, LOW);
+        }
+    }
+}
+
 
 /////////////////////////////////////
 //
@@ -2223,11 +2236,12 @@ bool midiRead = false;
 void MMidi::init()
 {
 	pinMode(0, INPUT);
+    pinMode(1, OUTPUT);
     Serial.begin(9600);
-    MIDI_SERIAL.begin(31250);
+    MIDI_SERIAL.begin(9600);
 	
 	midiBufferIndex = 0;
-	midiChannel = 1;
+	midiChannel = 0;
     Serial.println("MIDI intialised on channel 1. Use Midi.setChannel(channel) to set to other channel");
 }
 
@@ -2242,20 +2256,32 @@ void MMidi::setChannel(uint8_t channel)
 
 void MMidi::checkSerialMidi()
 {
-	//while(Serial.available() > 32) Serial.read();
-//	while(MIDI_SERIAL.available() > 0) {
     while(MIDI_SERIAL.available()) {
         
 		data = MIDI_SERIAL.read();
 		
-		if(data & 0x80 && (data & 0x0F) == midiChannel) {	// bitmask with 10000000 to see if byte is over 127 (data&0x80)
-			midiBufferIndex = 0;							// and check if the midi channel corresponds to the midiChannel
-			midiRead = true;								// the device is set to listen to.
-		} else if(data & 0x80) {							// Else if the byte is over 127 (but not on the device's
-			midiRead = false;								// midiChannel, don't read this or any following bytes.
-		}
+        if(data >= 0xF8) {
+            midiRealTimeHandler(data);
+//            RealTimeSystem(byte(data));
+        }
+        
+//		if(data & 0x80 && (data & 0x0F) == midiChannel) {	// bitmask with 10000000 to see if byte is over 127 (data&0x80)
+//			midiBufferIndex = 0;							// and check if the midi channel corresponds to the midiChannel
+//			midiRead = true;								// the device is set to listen to.
+//		} else if(data & 0x80) {							// Else if the byte is over 127 (but not on the device's
+//			midiRead = false;								// midiChannel, don't read this or any following bytes.
+//		}
 		
-		if(midiRead) {
+        if(data >= 0x80 && data < 0xF0) {       // check if incoming byte is a status byte (above 127)but less than sysEx (0xF0)
+            if((data & 0x0F) == midiChannel) {  // if it is, check if it is the right MIDI channel
+                midiBufferIndex = 0;
+                midiRead = true;
+            } else if(data >= 0x80) {           // if above check fails, check if it is still a status byte
+                midiRead = false;
+            } else {}                           // if it is below 128 just continue
+        }
+        
+        if(midiRead) {
 			midiBuffer[midiBufferIndex] = data;
 			midiBufferIndex++;
 			if (midiBufferIndex > 2) {
@@ -2288,6 +2314,7 @@ void MMidi::sendNoteOn(uint8_t note, uint8_t vel) {
     
 }
 
+
 void MMidi::sendController(uint8_t number, uint8_t value) {
     
     MIDI_SERIAL.write(0xB0 | midiChannel);
@@ -2296,12 +2323,56 @@ void MMidi::sendController(uint8_t number, uint8_t value) {
     
 }
 
-void MMidi::sendStep() {
-    MIDI_SERIAL.write(0xB0 | midiChannel);
-    MIDI_SERIAL.write(byte(CFO_COMMAND));
-    MIDI_SERIAL.write(byte(SEQ_STEP_FORWARD));
-    
+
+void MMidi::sendClock() {
+    MIDI_SERIAL.write(MIDI_CLOCK);
 }
+
+
+void MMidi::sendStart() {
+    MIDI_SERIAL.write(MIDI_START);
+}
+
+
+void MMidi::sendContinue() {
+    MIDI_SERIAL.write(MIDI_CONTINUE);
+}
+
+
+void MMidi::sendStop() {
+    MIDI_SERIAL.write(MIDI_STOP);
+}
+
+
+void MMidi::midiRealTimeHandler(uint8_t data) {
+    
+    if(MIDI_THROUGH) {
+        MIDI_SERIAL.write(data);
+    }
+    
+    switch(data) {
+        case 0xF8:
+            Sequencer.midiClock();
+            break;
+            
+        case 0xFA:
+            Sequencer.midiStart();
+            break;
+            
+        case 0xFB:
+            Sequencer.midiContinue();
+            break;
+            
+        case 0xFC:
+            Sequencer.midiStop();
+            break;
+            
+        default:
+            break;
+    }
+}
+
+
 
 
 void MMidi::midiHandler() {
@@ -2311,10 +2382,9 @@ void MMidi::midiHandler() {
         MIDI_SERIAL.write(midiBuffer[1]);
         MIDI_SERIAL.write(midiBuffer[2]);
     }
-//    uint8_t midiChannel = (midiBuffer[0] & 0x0F);
     
 	if((midiBuffer[0] & 0x0F) == midiChannel) {
-        switch(midiBuffer[0] & 0xF0) { // bit mask with &0xF0 ?
+        switch(midiBuffer[0] & 0xF0) { // bit mask with &0xF0
             case 0x80:
                 noteOff			(midiBuffer[0] & 0x0F,     // midi channel 0-15
                                  midiBuffer[1] & 0x7F,   // note value 0-127
@@ -2617,9 +2687,12 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			Music.getPreset(value);
 			Music.sendInstrument();
 			break;
-		case CFO_COMMAND:
-			Music.setCommandFlag(value);
-			break;
+        case CFO_COMMAND:
+            Music.setCommandFlag(value);
+            break;
+        case CFO_LIGHT_LED:
+            Music.lightLED(value);
+            break;
 		default:
 			break;
 	} 
