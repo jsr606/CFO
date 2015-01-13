@@ -56,7 +56,7 @@ enum SUBDIV {
 enum SEQ_LOOP_TYPE {
     ONCE = 0,
     LOOP = 1,
-    PINGPONG = 2
+    PINGPONG = 2    // not implemented yet
 };
 
 #define REVERSE true
@@ -69,18 +69,21 @@ class iseq;
 class MSequencer {
 public:
     void init(int bpm);
-    void timerClock();
-    void midiClock();
-    void tick();
     void update();
+    void internalClock();
+
+    void midiClock();
     void midiStart();
     void midiContinue();
     void midiStop();
-    void sequencerStart();
-    void sequencerContinue();
-    void sequencerStop();
+    
+    void clock();
+    void stop();
+    void start();
+    void continues();
     
     int newSequence(SUBDIV subdiv, func_cb cb);
+    int newSequence(SUBDIV subdiv, int steps, int channel);
     int newSequence(SUBDIV subdiv, int steps, SEQ_LOOP_TYPE loop);
     int newSequence(SUBDIV subdiv, int steps, SEQ_LOOP_TYPE loop, bool reverse);
     
@@ -88,11 +91,14 @@ public:
     bool startSequence(int index);
     bool continueSequence(int index);
 
-    void setMidiClock(bool mc);
-    bool getMidiClock();
+    void setInternalClock(bool i);
+    bool getInternalClock();
     
     void setbpm(int v);
     int getbpm();
+    
+    bool setChannel(int index, int c);
+    int getChannel(int index);
     
     bool setSteps(int index, int s);
     int getSteps(int index);
@@ -108,6 +114,12 @@ public:
     
     bool setReverse(int index, bool r);
     bool getReverse(int index);
+    
+    bool setInternal(int index, bool i);
+    bool getInternal(int index);
+    
+    bool setExternal(int index, bool e);
+    bool getExternal(int index);
     
     bool setSubdiv(int index, SUBDIV subdiv);
     int getSubdiv(int index);
@@ -125,45 +137,12 @@ private:
     seq* _sequences[MAX_SEQ];
     int _bpm;
     int _bpmInClockTicks;
-    bool _midiClock;
+    bool _internalClock;
     unsigned long clockTick;
     unsigned long timeNow;
     unsigned long lastTime;
     unsigned long tickTime;
 
-    
-};
-
-
-class iSequencer {
-public:
-    void init(int bpm);
-    void update();
-    
-    int newSequence(SUBDIV subdiv, int steps, SEQ_LOOP_TYPE loop);
-    
-    bool stopSequence(int index);
-    bool startSequence(int index);
-    
-    bool setSequenceSubdiv(int index, SUBDIV subdiv);
-    
-    int getSequenceSubdiv(int index);
-    
-//    bool setCallback(int index, func_cb cb);
-//    func_cb getCallback(int index);
-    
-    unsigned long clockStep;
-    
-    void setbpm(int v);
-    int getbpm();
-    
-    
-    
-private:
-    iseq* _sequences[INSTR_SEQ];
-    int _bpm;
-    int _bpmInClockSteps;
-    
     
 };
 
@@ -175,16 +154,21 @@ class seq {
 private:
     
     seq(int id, SUBDIV subdiv, func_cb cb);
+    seq(int id, SUBDIV subdiv, int steps, int channel);
     seq(int id, SUBDIV subdiv, int steps, SEQ_LOOP_TYPE loop);
     seq(int id, SUBDIV subdiv, int steps, SEQ_LOOP_TYPE loop, bool reverse);
     
     int _id;
+    int _channel;
     int _steps;
     int _begin;
     int _end;
     int _position;
+    int _lastposition;
     bool _reverse;
     bool _stopped;
+    bool _internal;
+    bool _external;
     SUBDIV _subdiv;
     SEQ_LOOP_TYPE _loop;
     
@@ -197,6 +181,9 @@ private:
     unsigned long step;
     
     void trigger();
+    
+    void setchannel(int c);
+    int getchannel();
 
     void setsteps(int s);
     int getsteps();
@@ -210,8 +197,14 @@ private:
     void setend(int e);
     int getend();
     
-    void setreverse(bool reverse);
+    void setreverse(bool r);
     bool getreverse();
+    
+    void setinternal(bool i);
+    bool getinternal();
+    
+    void setexternal(bool e);
+    bool getexternal();
     
     void setsubdiv(SUBDIV v);
     SUBDIV getsubdiv();

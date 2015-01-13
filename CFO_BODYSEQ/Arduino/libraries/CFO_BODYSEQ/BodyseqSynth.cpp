@@ -2231,19 +2231,25 @@ void MMusic::lightLED(uint8_t l)
 //
 /////////////////////////////////////
 
-bool midiRead = false;
-
 void MMidi::init()
 {
 	pinMode(0, INPUT);
     pinMode(1, OUTPUT);
     Serial.begin(9600);
     MIDI_SERIAL.begin(9600);
-	
+    
+    setMidiIn(true);
+    setMidiOut(true);
+    setMidiThru(true);
+    setMidiClockIn(true);
+    setMidiClockOut(true);
+    
 	midiBufferIndex = 0;
 	midiChannel = 0;
+    midiRead = false;
     Serial.println("MIDI intialised on channel 1. Use Midi.setChannel(channel) to set to other channel");
 }
+
 
 void MMidi::setChannel(uint8_t channel)
 {
@@ -2251,6 +2257,146 @@ void MMidi::setChannel(uint8_t channel)
         Serial.println("MIDI channel must be set to a number between 1 and 16");
     }
     else midiChannel = channel - 1;
+}
+
+uint8_t MMidi::getChannel() {
+    return midiChannel;
+}
+
+
+void MMidi::sendNoteOff(uint8_t channel, uint8_t note) {
+    if(getMidiOut()) {
+        MIDI_SERIAL.write(0x80 | (channel & 0x0F));
+        MIDI_SERIAL.write(byte(note & 0x7F));
+        MIDI_SERIAL.write(0x00);
+    }
+}
+
+
+void MMidi::sendNoteOff(uint8_t channel, uint8_t note, uint8_t vel) {
+    if(getMidiOut()) {
+        MIDI_SERIAL.write(0x80 | (channel & 0x0F));
+        MIDI_SERIAL.write(byte(note & 0x7F));
+        MIDI_SERIAL.write(byte(vel & 0x7F));
+    }
+}
+
+
+void MMidi::sendNoteOn(uint8_t channel, uint8_t note, uint8_t vel) {
+    if(getMidiOut()) {
+        MIDI_SERIAL.write(0x90 | (channel & 0x0F));
+        MIDI_SERIAL.write(byte(note & 0x7F));
+        MIDI_SERIAL.write(byte(vel & 0x7F));
+    }
+}
+
+
+void MMidi::sendController(uint8_t channel, uint8_t number, uint8_t value) {
+    if(getMidiOut()) {
+        MIDI_SERIAL.write(0xB0 | (channel & 0x0F));
+        MIDI_SERIAL.write(byte(number & 0x7F));
+        MIDI_SERIAL.write(byte(value & 0x7F));
+    }
+}
+
+
+void MMidi::sendClock() {
+    if(getMidiClockOut()) {
+        MIDI_SERIAL.write(MIDI_CLOCK);
+    }
+}
+
+
+void MMidi::sendStart() {
+    if(getMidiClockOut()) {
+        MIDI_SERIAL.write(MIDI_START);
+    }
+}
+
+
+void MMidi::sendContinue() {
+    if(getMidiClockOut()) {
+        MIDI_SERIAL.write(MIDI_CONTINUE);
+    }
+}
+
+
+void MMidi::sendStop() {
+    if(getMidiClockOut()) {
+        MIDI_SERIAL.write(MIDI_STOP);
+    }
+}
+
+
+void MMidi::setMidiIn(bool i)
+{
+    midiIn = i;
+}
+
+
+bool MMidi::getMidiIn()
+{
+    return midiIn;
+}
+
+
+void MMidi::setMidiOut(bool o)
+{
+    midiOut = o;
+}
+
+
+bool MMidi::getMidiOut()
+{
+    return midiOut;
+}
+
+
+void MMidi::setMidiThru(bool t)
+{
+    midiThru = t;
+}
+
+
+bool MMidi::getMidiThru()
+{
+    return midiThru;
+}
+
+
+void MMidi::setMidiClockIn(bool i)
+{
+    midiClockIn = i;
+}
+
+
+bool MMidi::getMidiClockIn()
+{
+    return midiClockIn;
+}
+
+
+void MMidi::setMidiClockOut(bool o)
+{
+    midiClockOut = o;
+}
+
+
+bool MMidi::getMidiClockOut()
+{
+    return midiClockOut;
+}
+
+
+void MMidi::setMidiClockThru(bool t)
+{
+    midiClockThru = t;
+}
+
+
+bool MMidi::getMidiClockThru()
+{
+    return midiClockThru;
 }
 
 
@@ -2297,139 +2443,117 @@ void MMidi::checkSerialMidi()
 }
 
 
-void MMidi::sendNoteOff(uint8_t note) {
-    
-    MIDI_SERIAL.write(0x80 | midiChannel);
-    MIDI_SERIAL.write(byte(note));
-    MIDI_SERIAL.write(0x00);
-    
-}
-
-
-void MMidi::sendNoteOn(uint8_t note, uint8_t vel) {
-    
-    MIDI_SERIAL.write(0x90 | midiChannel);
-    MIDI_SERIAL.write(byte(note));
-    MIDI_SERIAL.write(byte(vel));
-    
-}
-
-
-void MMidi::sendController(uint8_t number, uint8_t value) {
-    
-    MIDI_SERIAL.write(0xB0 | midiChannel);
-    MIDI_SERIAL.write(byte(number));
-    MIDI_SERIAL.write(byte(value));
-    
-}
-
-
-void MMidi::sendClock() {
-    MIDI_SERIAL.write(MIDI_CLOCK);
-}
-
-
-void MMidi::sendStart() {
-    MIDI_SERIAL.write(MIDI_START);
-}
-
-
-void MMidi::sendContinue() {
-    MIDI_SERIAL.write(MIDI_CONTINUE);
-}
-
-
-void MMidi::sendStop() {
-    MIDI_SERIAL.write(MIDI_STOP);
-}
-
-
 void MMidi::midiRealTimeHandler(uint8_t data) {
     
-    if(MIDI_THROUGH) {
+    if(getMidiClockThru()) {
         MIDI_SERIAL.write(data);
     }
-    
-    switch(data) {
-        case 0xF8:
-            Sequencer.midiClock();
-            break;
-            
-        case 0xFA:
-            Sequencer.midiStart();
-            break;
-            
-        case 0xFB:
-            Sequencer.midiContinue();
-            break;
-            
-        case 0xFC:
-            Sequencer.midiStop();
-            break;
-            
-        default:
-            break;
-    }
-}
-
-
-
-
-void MMidi::midiHandler() {
-
-    if(MIDI_THROUGH) {
-        MIDI_SERIAL.write(midiBuffer[0]);
-        MIDI_SERIAL.write(midiBuffer[1]);
-        MIDI_SERIAL.write(midiBuffer[2]);
-    }
-    
-	if((midiBuffer[0] & 0x0F) == midiChannel) {
-        switch(midiBuffer[0] & 0xF0) { // bit mask with &0xF0
-            case 0x80:
-                noteOff			(midiBuffer[0] & 0x0F,     // midi channel 0-15
-                                 midiBuffer[1] & 0x7F,   // note value 0-127
-                                 midiBuffer[2] & 0x7F);  // note velocity 0-127
+    if(getMidiClockIn()) {
+        switch(data) {
+            case 0xF8:
+                clock();
                 break;
                 
-            case 0x90:
-                noteOn			(midiBuffer[0] & 0x0F,     // midi channel 0-15
-                                 midiBuffer[1] & 0x7F,   // note value 0-127
-                                 midiBuffer[2] & 0x7F);  // note velocity 0-127
+            case 0xFA:
+                start();
                 break;
                 
-            case 0xA0:
-                aftertouch		(midiBuffer[0] & 0x0F,   // midi channel 0-15
-                                 midiBuffer[1] & 0x7F, // note value 0-127
-                                 midiBuffer[2] & 0x7F);// note velocity 0-127
+            case 0xFB:
+                continues();
                 break;
                 
-            case 0xB0:
-                controller		(midiBuffer[0] & 0x0F,   // midi channel 0-15
-                                 midiBuffer[1] & 0x7F, // controller number 0-127
-                                 midiBuffer[2] & 0x7F);// controller value 0-127
-                break;
-                
-            case 0xC0:
-                programChange	(midiBuffer[0]  & 0x0F,    // midi channel 0-15
-                                 midiBuffer[1] & 0x7F);  // program number 0-127
-                break;
-                
-            case 0xD0:
-                channelPressure	(midiBuffer[0]  & 0x0F,    // midi channel 0-15
-                                 midiBuffer[1] & 0x7F);  // pressure amount 0-127
-                break;
-                
-            case 0xE0:
-                pitchWheel		(midiBuffer[0] & 0x0F,   // midi channel 0-15
-                                 midiBuffer[1] & 0x7F, // higher bits 0-6
-                                 midiBuffer[2] & 0x7F);// lower bits 7-13
+            case 0xFC:
+                stop();
                 break;
                 
             default:
                 break;
         }
+
     }
-    else Serial.println("Skipped MIDI message on other channel");
+}
+
+
+void MMidi::clock()
+{
+        Sequencer.clock();
+}
+
+
+void MMidi::start()
+{
+        Sequencer.start();
+}
+
+
+void MMidi::continues()
+{
+        Sequencer.continues();
+}
+
+
+void MMidi::stop()
+{
+        Sequencer.stop();
+}
+
+
+void MMidi::midiHandler() {
+
+    if(getMidiThru()) {
+        MIDI_SERIAL.write(midiBuffer[0]);
+        MIDI_SERIAL.write(midiBuffer[1]);
+        MIDI_SERIAL.write(midiBuffer[2]);
+    }
+    if(getMidiIn()) {
+        if((midiBuffer[0] & 0x0F) == midiChannel) {
+            switch(midiBuffer[0] & 0xF0) { // bit mask with &0xF0
+                case 0x80:
+                    noteOff			(midiBuffer[0] & 0x0F,     // midi channel 0-15
+                                     midiBuffer[1] & 0x7F,   // note value 0-127
+                                     midiBuffer[2] & 0x7F);  // note velocity 0-127
+                    break;
+                    
+                case 0x90:
+                    noteOn			(midiBuffer[0] & 0x0F,     // midi channel 0-15
+                                     midiBuffer[1] & 0x7F,   // note value 0-127
+                                     midiBuffer[2] & 0x7F);  // note velocity 0-127
+                    break;
+                    
+                case 0xA0:
+                    aftertouch		(midiBuffer[0] & 0x0F,   // midi channel 0-15
+                                     midiBuffer[1] & 0x7F, // note value 0-127
+                                     midiBuffer[2] & 0x7F);// note velocity 0-127
+                    break;
+                    
+                case 0xB0:
+                    controller		(midiBuffer[0] & 0x0F,   // midi channel 0-15
+                                     midiBuffer[1] & 0x7F, // controller number 0-127
+                                     midiBuffer[2] & 0x7F);// controller value 0-127
+                    break;
+                    
+                case 0xC0:
+                    programChange	(midiBuffer[0]  & 0x0F,    // midi channel 0-15
+                                     midiBuffer[1] & 0x7F);  // program number 0-127
+                    break;
+                    
+                case 0xD0:
+                    channelPressure	(midiBuffer[0]  & 0x0F,    // midi channel 0-15
+                                     midiBuffer[1] & 0x7F);  // pressure amount 0-127
+                    break;
+                    
+                case 0xE0:
+                    pitchWheel		(midiBuffer[0] & 0x0F,   // midi channel 0-15
+                                     midiBuffer[1] & 0x7F, // higher bits 0-6
+                                     midiBuffer[2] & 0x7F);// lower bits 7-13
+                    break;
+                    
+                default:
+                    break;
+            }
+        }
+        else Serial.println("Skipped MIDI message on other channel");
+    }
 }
 
 
@@ -2455,17 +2579,13 @@ void MMidi::aftertouch(uint8_t channel, uint8_t note, uint8_t pressure) {
 
 void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 	
-	if(value >= 128) value = 127;
+	if(value > 127) value = 127;
 	instrument[number] = value;
-//	Serial.print(number);
-//	Serial.print(" : ");
-//	Serial.println(instrument[number]);
 	
 	switch(number) {
 		case IS_12_BIT:
 			if(value) Music.set12bit(true);
 			else Music.set12bit(false);
-//			Music.set12bit(value/64);
 			break;
 		case PORTAMENTO:
 			Music.setPortamento(portamentoTimeTable[value]);
@@ -2481,12 +2601,7 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			break;
 		case CUTOFF_MOD_AMOUNT:
 			Music.setCutoffModAmount((value-64) * 1024);
-			//			if(value > 63) Music.setCutoffModAmount((value-64) * 512);
-			//			if(value < 64) Music.setCutoffModAmount(() * 512);
 			break;
-			//		case CUTOFF_MOD_DIRECTION:
-			//			Music.setCutoffModDirection(value);
-			//			break;			
 		case CUTOFF_SOURCE:
 			Music.setCutoffModSource(value);
 			break;			
@@ -2507,8 +2622,6 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			} else {
 				Music.setOsc1LFO(false);
 			}
-//			if(Music.osc1LFO) Music.setFrequency1(Music.getNoteFrequency(value)/1024.0);
-//			else Music.setFrequency1(Music.getNoteFrequency(value));
 			break;
 		case LFO2:
 			if(value) {
@@ -2517,8 +2630,6 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			} else {
 				Music.setOsc2LFO(false);
 			}
-			//			if(Music.osc2LFO) Music.setFrequency2(Music.getNoteFrequency(value)/1024.0);
-//			else Music.setFrequency2(Music.getNoteFrequency(value));
 			break;
 		case LFO3:
 			if(value) {
@@ -2527,8 +2638,6 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			} else {
 				Music.setOsc3LFO(false);
 			}
-			//			if(Music.osc3LFO) Music.setFrequency3(Music.getNoteFrequency(value)/1024.0);
-//			else Music.setFrequency3(Music.getNoteFrequency(value));
 			break;
 		case DETUNE1:
 			Music.setDetune1(map(value,0,127,-100,100)*0.0005946);

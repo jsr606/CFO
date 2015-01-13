@@ -43,14 +43,16 @@ void setup() {
   Sequencer.insertNotes(s1, notes1, 16, 0);
   Sequencer.insertNotes(s1, vels, 7, 8); 
   Sequencer.insertNotes(s1, vels, 3, 2); 
+  Sequencer.setInternal(s1, true);
+  Sequencer.setExternal(s1, false);
   
 }
 
 void loop() {
 // Checking for incoming MIDI to use dashboard
+  Sequencer.update();
   usbMIDI.read();
   Midi.checkSerialMidi();
-  Sequencer.update();
   checkBPM();
 //  checkBeegin();
   checkEend();
@@ -63,9 +65,21 @@ void checkBPM() {
     Serial.println(_bpm);
     Sequencer.setbpm(_bpm);
     if(_bpm == 0) {
-      Sequencer.setMidiClock(true);
+      Midi.setMidiIn(true);
+      Midi.setMidiThru(true);
+      Midi.setMidiOut(true);
+      Midi.setMidiClockIn(true);
+      Midi.setMidiClockThru(true);
+      Midi.setMidiClockOut(true);
+      Sequencer.setInternalClock(false);
     } else {
-      Sequencer.setMidiClock(false);
+      Midi.setMidiIn(false);
+      Midi.setMidiThru(false);
+      Midi.setMidiOut(false);
+      Midi.setMidiClockIn(false);
+      Midi.setMidiClockThru(false);
+      Midi.setMidiClockOut(false);
+      Sequencer.setInternalClock(true);
 //      Sequencer.sequencerContinue();
     }
   }

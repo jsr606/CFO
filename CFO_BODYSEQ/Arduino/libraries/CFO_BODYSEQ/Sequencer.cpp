@@ -28,162 +28,91 @@
 
 MSequencer Sequencer;
 
-IntervalTimer sequencerTimer;
-
-bool sequencerTimerRunning = false;
-bool sequencerRunning = false;
-
-#ifndef SAMPLE_RATE
-unsigned int sampleRate = 48000;
-#endif
-
-void sequencer_isr(void)
-{
-    Sequencer.timerClock();
-}
-
-
-void inline MSequencer::timerClock()
-{
-    if(!getMidiClock()) {
-        timeNow = micros();
-        if(timeNow - lastTime >= tickTime) {
-            tick();
-            Midi.sendClock();
-            lastTime = timeNow;
-        }
-    }
-}
-
-
-void MSequencer::midiClock()
-{
-    if(getMidiClock()) {
-        tick();
-    }
-}
-
-
-void inline MSequencer::tick()
-{
-    clockTick++;
-//    MIDI_SERIAL.write(0xF8);
-}
-
 
 void MSequencer::init(int bpm)
 {
     setbpm(bpm);
-    _midiClock = false;
     clockTick = 0;
     for(int i = 0; i < MAX_SEQ; i++) {
         _sequences[i] = NULL;
     }
-    if(!sequencerTimerRunning) {
-        sequencerTimerRunning = true;
-//        sequencerTimer.begin(sequencer_isr, 60.0 * 1000000.0 / (float(_bpm * TICKS_PER_QUARTER_NOTE)));
+}
+
+
+void MSequencer::internalClock()
+{
+    timeNow = micros();
+    if(timeNow - lastTime >= tickTime) {
+        clock();
+        Midi.sendClock();
+        lastTime = timeNow;
     }
-    sequencerRunning = true;
-}
-
-
-void MSequencer::setMidiClock(bool mc)
-{
-    _midiClock = mc;
-}
-
-bool MSequencer::getMidiClock()
-{
-    return _midiClock;
 }
 
 
 void MSequencer::update()
 {
-    timerClock();
+    if(getInternalClock()) internalClock();
     
     for(int i = 0; i < MAX_SEQ; i++) {
         seq* s = _sequences[i];
         if(s == NULL || s->_stopped) continue;
         if(clockTick >= s -> step) {
             if(s -> _steps) {
-//                Serial.println("TRIGGER!");
                 s -> trigger();
             } else {
                 s->_callback();
             }
             s->step += s -> _subdiv;
-//            Serial.println(s -> step);
         }
     }
 }
 
-void MSequencer::midiStop()
+
+void MSequencer::setInternalClock(bool i)
 {
-    if(_midiClock) {
-        for(int i = 0; i < MAX_SEQ; i++) {
-            stopSequence(i);
-        }
-        sequencerRunning = false;
-    }
+    _internalClock = i;
 }
 
 
-void MSequencer::midiStart()
+bool MSequencer::getInternalClock()
 {
-    if(_midiClock) {
-        clockTick = 0;
-        for(int i = 0; i < MAX_SEQ; i++) {
-            startSequence(i);
-        }
-        sequencerRunning = true;
-    }
+    return _internalClock;
 }
 
 
-void MSequencer::midiContinue()
+void MSequencer::clock()
 {
-    if(_midiClock) {
-        clockTick = 0;
-        for(int i = 0; i < MAX_SEQ; i++) {
-            continueSequence(i);
-        }
-        sequencerRunning = true;
-    }
-}
-
-void MSequencer::sequencerStop()
-{
-    if(!_midiClock) {
-        for(int i = 0; i < MAX_SEQ; i++) {
-            stopSequence(i);
-        }
-        sequencerRunning = false;
-    }
+    clockTick++;
 }
 
 
-void MSequencer::sequencerStart()
+void MSequencer::start()
 {
-    if(!_midiClock) {
-        clockTick = 0;
-        for(int i = 0; i < MAX_SEQ; i++) {
-            startSequence(i);
-        }
-        sequencerRunning = true;
+    clockTick = 0;
+    for(int i = 0; i < MAX_SEQ; i++) {
+        startSequence(i);
     }
+    Midi.sendStart();
 }
 
 
-void MSequencer::sequencerContinue()
+void MSequencer::continues()
 {
-    if(!_midiClock) {
-        clockTick = 0;
-        for(int i = 0; i < MAX_SEQ; i++) {
-            continueSequence(i);
-        }
-        sequencerRunning = true;
+    clockTick = 0;
+    for(int i = 0; i < MAX_SEQ; i++) {
+        continueSequence(i);
     }
+    Midi.sendContinue();
+}
+
+
+void MSequencer::stop()
+{
+    for(int i = 0; i < MAX_SEQ; i++) {
+        stopSequence(i);
+    }
+    Midi.sendStop();
 }
 
 
@@ -223,6 +152,24 @@ int MSequencer::newSequence(SUBDIV subdiv, int steps, SEQ_LOOP_TYPE loop)
 }
 
 
+int MSequencer::newSequence(SUBDIV subdiv, int steps, int channel)
+{
+    int j = -1;
+    for(int i = 0; i < MAX_SEQ; i++) {
+        if(_sequences[i] == NULL) j = i;
+    }
+    
+    if(j >= 0) {
+        seq* s = new seq(j, subdiv, steps, channel);
+        _sequences[j] = s;
+        Serial.print("Created sequence ");
+        Serial.println(j);
+    }
+    
+    return j;
+}
+
+
 int MSequencer::newSequence(SUBDIV subdiv, int steps, SEQ_LOOP_TYPE loop, bool reverse)
 {
     int j = -1;
@@ -253,7 +200,6 @@ bool MSequencer::stopSequence(int index)
 
 bool MSequencer::startSequence(int index)
 {
-    Serial.println("Enter startSequence");
     if(index >= 0 && index < MAX_SEQ && _sequences[index] != NULL) {
         _sequences[index] -> _stopped = false;
         _sequences[index] -> step = 0;
@@ -288,20 +234,20 @@ int MSequencer::getbpm()
 }
 
 
-bool MSequencer::setSubdiv(int index, SUBDIV subdiv)
+bool MSequencer::setChannel(int index, int channel)
 {
     if(index >= 0 && index < MAX_SEQ && _sequences[index] != NULL) {
-        _sequences[index]->setsubdiv(subdiv);
+        _sequences[index]->setchannel(channel);
         return true;
     }
     return false;
 }
 
 
-int MSequencer::getSubdiv(int index)
+int MSequencer::getChannel(int index)
 {
     if(index >= 0 && index < MAX_SEQ && _sequences[index] != NULL) {
-        return _sequences[index]->getsubdiv();
+        return _sequences[index]->getchannel();
     }
     return -1;
 }
@@ -402,6 +348,63 @@ bool MSequencer::getReverse(int index)
 }
 
 
+bool MSequencer::setInternal(int index, bool internal)
+{
+    if(index >= 0 && index < MAX_SEQ && _sequences[index] != NULL) {
+        _sequences[index]->setinternal(internal);
+        return true;
+    }
+    return false;
+}
+
+
+bool MSequencer::getInternal(int index)
+{
+    if(index >= 0 && index < MAX_SEQ && _sequences[index] != NULL) {
+        return _sequences[index]->getinternal();
+    }
+    return -1;
+}
+
+
+bool MSequencer::setExternal(int index, bool external)
+{
+    if(index >= 0 && index < MAX_SEQ && _sequences[index] != NULL) {
+        _sequences[index]->setexternal(external);
+        return true;
+    }
+    return false;
+}
+
+
+bool MSequencer::getExternal(int index)
+{
+    if(index >= 0 && index < MAX_SEQ && _sequences[index] != NULL) {
+        return _sequences[index]->getexternal();
+    }
+    return -1;
+}
+
+
+bool MSequencer::setSubdiv(int index, SUBDIV subdiv)
+{
+    if(index >= 0 && index < MAX_SEQ && _sequences[index] != NULL) {
+        _sequences[index]->setsubdiv(subdiv);
+        return true;
+    }
+    return false;
+}
+
+
+int MSequencer::getSubdiv(int index)
+{
+    if(index >= 0 && index < MAX_SEQ && _sequences[index] != NULL) {
+        return _sequences[index]->getsubdiv();
+    }
+    return -1;
+}
+
+
 bool MSequencer::setLoopType(int index, SEQ_LOOP_TYPE loop)
 {
     if(index >= 0 && index < MAX_SEQ && _sequences[index] != NULL) {
@@ -461,8 +464,31 @@ seq::seq(int id, SUBDIV subdiv, func_cb cb) : _id(id), _stopped(true)
 }
 
 
+seq::seq(int id, SUBDIV subdiv,  int steps, int channel) : _id(id), _stopped(true)
+{
+    setchannel(channel);
+    setsubdiv(subdiv);
+    setsteps(steps);
+    setlooptype(LOOP);
+    setreverse(false);
+    setposition(0);
+    setbegin(0);
+    if(steps <= MAX_STEPS) setend(steps-1);
+    else setend(MAX_STEPS);
+    for(int i = 0; i < MAX_STEPS; i++) {
+        _notes[i] = 36 + 3 * i;
+        _velocity[i] = 127;
+    }
+    setinternal(true);
+    setexternal(true);
+    _lastposition = 0;
+    
+}
+
+
 seq::seq(int id, SUBDIV subdiv,  int steps, SEQ_LOOP_TYPE loop) : _id(id), _stopped(true)
 {
+    setchannel(Midi.midiChannel);
     setsubdiv(subdiv);
     setsteps(steps);
     setlooptype(loop);
@@ -472,14 +498,18 @@ seq::seq(int id, SUBDIV subdiv,  int steps, SEQ_LOOP_TYPE loop) : _id(id), _stop
     if(steps <= MAX_STEPS) setend(steps-1);
     else setend(MAX_STEPS);
     for(int i = 0; i < MAX_STEPS; i++) {
-        _notes[i] = 48 + 3 * i;
+        _notes[i] = 36 + 3 * i;
         _velocity[i] = 127;
     }
+    setinternal(true);
+    setexternal(true);
+    _lastposition = 0;
 }
 
 
 seq::seq(int id, SUBDIV subdiv,  int steps, SEQ_LOOP_TYPE loop, bool reverse) : _id(id), _stopped(true)
 {
+    setchannel(Midi.midiChannel);
     setsubdiv(subdiv);
     setsteps(steps);
     setlooptype(loop);
@@ -497,16 +527,24 @@ seq::seq(int id, SUBDIV subdiv,  int steps, SEQ_LOOP_TYPE loop, bool reverse) : 
         _notes[i] = 36 + 3 * i;
         _velocity[i] = 127;
     }
+    setinternal(true);
+    setexternal(true);
+    _lastposition = 0;
 }
 
 
 void seq::trigger()
 {
-    Midi.noteOn(Midi.midiChannel, _notes[_position], _velocity[_position]);
-//    channel = channel - 1;
-    MIDI_SERIAL.write(byte(0x90 | (Midi.midiChannel & 0x0F)));
-    MIDI_SERIAL.write(byte(0x7F & _notes[_position]));
-    MIDI_SERIAL.write(byte(0x7F & _velocity[_position]));
+    if(_internal) {
+        Midi.noteOff(_channel, _notes[_lastposition], _velocity[_lastposition]);
+        Midi.noteOn(_channel, _notes[_position], _velocity[_position]);
+    }
+    if(_external) {
+        Midi.sendNoteOff(_channel, _notes[_lastposition], _velocity[_lastposition]);
+        Midi.sendNoteOn(_channel, _notes[_position], _velocity[_position]);
+    }
+    
+    _lastposition = _position;
 
     if(_reverse) {
         if(_position <= _begin) {
@@ -519,8 +557,10 @@ void seq::trigger()
             _position = _begin - 1;
             if(!_loop) _stopped = true;
         }
+        _lastposition = _position;
         _position++;
     }
+//    Serial.println("triggered");
 }
 
 
@@ -535,6 +575,18 @@ void seq::insertnotes(int notes[], int numNotes, int newPosition)
             _notes[pos] = note;
         }
     }
+}
+
+
+void seq::setchannel(int c)
+{
+    _channel = c;
+}
+
+
+int seq::getchannel()
+{
+    return _channel;
 }
 
 
@@ -601,6 +653,30 @@ void seq::setreverse(bool r)
 bool seq::getreverse()
 {
     return _reverse;
+}
+
+
+void seq::setinternal(bool i)
+{
+    _internal = i;
+}
+
+
+bool seq::getinternal()
+{
+    return _internal;
+}
+
+
+void seq::setexternal(bool e)
+{
+    _external = e;
+}
+
+
+bool seq::getexternal()
+{
+    return _external;
 }
 
 

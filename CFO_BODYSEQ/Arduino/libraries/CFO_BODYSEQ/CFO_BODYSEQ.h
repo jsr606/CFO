@@ -73,9 +73,12 @@ void OnControlChange(byte channel, byte control, byte value) {
 }
 
 void RealTimeSystem(byte realtimebyte) {
+    Midi.midiRealTimeHandler(realtimebyte);
+/*
     if(realtimebyte == MIDI_CLOCK) {
-        Sequencer.midiClock();
-        if(Sequencer.getMidiClock()) MIDI_SERIAL.write(byte(MIDI_CLOCK));
+        Midi.clock();
+        Midi.sendClock();
+//        if(Sequencer.getMidiClock()) MIDI_SERIAL.write(byte(MIDI_CLOCK));
     }
     
     if(realtimebyte == MIDI_START) {
@@ -92,6 +95,7 @@ void RealTimeSystem(byte realtimebyte) {
         Sequencer.midiStop();
         if(Sequencer.getMidiClock()) MIDI_SERIAL.write(byte(MIDI_STOP));
     }
+*/
 }
 
 #endif // close guard CFO_BODYSEQ_h
