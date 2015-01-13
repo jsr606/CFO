@@ -24,6 +24,7 @@
 #pragma once
 
 #define MAX_SEQ 3
+#define MAX_STEPS 16
 #define INSTR_SEQ 4
 #define ISEQ_NBR_STEPS 32
 
@@ -31,6 +32,7 @@
 #define TICKS_PER_QUARTER_NOTE 24 //
 
 enum SUBDIV {
+    NOTE_0,
     NOTE_1 = (TICKS_PER_QUARTER_NOTE * 4),
     NOTE_1DOT = (TICKS_PER_QUARTER_NOTE * 3),
     NOTE_2 = (TICKS_PER_QUARTER_NOTE * 2),
@@ -42,24 +44,22 @@ enum SUBDIV {
     NOTE_16 = (TICKS_PER_QUARTER_NOTE / 4),
     NOTE_24 = (TICKS_PER_QUARTER_NOTE / 6),
     NOTE_32 = (TICKS_PER_QUARTER_NOTE / 8),
-    NOTE_48 = (TICKS_PER_QUARTER_NOTE / 12)
-#if (TICKS_PER_QUARTER_NOTE > 64)
-    ,NOTE_64 = (TICKS_PER_QUARTER_NOTE / 16),
-    NOTE_96 = (TICKS_PER_QUARTER_NOTE / 24),
-    NOTE_128 = (TICKS_PER_QUARTER_NOTE / 32),
-    NOTE_192 = (TICKS_PER_QUARTER_NOTE / 48),
+    NOTE_48 = (TICKS_PER_QUARTER_NOTE / 12),
+    NOTE_64 = (TICKS_PER_QUARTER_NOTE / 16),
+    NOTE_96 = (TICKS_PER_QUARTER_NOTE / 24)
+//    NOTE_128 = (TICKS_PER_QUARTER_NOTE / 32),
+//    NOTE_192 = (TICKS_PER_QUARTER_NOTE / 48),
 //    NOTE_256 = (TICKS_PER_QUARTER_NOTE / 64),
-    NOTE_384 = (TICKS_PER_QUARTER_NOTE / 96)
-#endif
+//    NOTE_384 = (TICKS_PER_QUARTER_NOTE / 96)
 };
 
 enum SEQ_LOOP_TYPE {
-    NO_LOOP = 0,
-    FORWARD_LOOP = 1,
-    BACKWARD_LOOP = 2,
-    PINGPONG = 3,
-    STEP = 4
+    ONCE = 0,
+    LOOP = 1,
+    PINGPONG = 2
 };
+
+#define REVERSE true
 
 typedef void (*func_cb)(void);
 
@@ -80,25 +80,45 @@ public:
     void sequencerContinue();
     void sequencerStop();
     
-    int newSequence(func_cb cb, SUBDIV subdiv);
+    int newSequence(SUBDIV subdiv, func_cb cb);
+    int newSequence(SUBDIV subdiv, int steps, SEQ_LOOP_TYPE loop);
+    int newSequence(SUBDIV subdiv, int steps, SEQ_LOOP_TYPE loop, bool reverse);
     
     bool stopSequence(int index);
     bool startSequence(int index);
     bool continueSequence(int index);
 
-    bool setSequenceSubdiv(int index, SUBDIV subdiv);
-    
-    int getSequenceSubdiv(int index);
-    
-    bool setCallback(int index, func_cb cb);
-    func_cb getCallback(int index);
-    
     void setMidiClock(bool mc);
     bool getMidiClock();
     
     void setbpm(int v);
     int getbpm();
-
+    
+    bool setSteps(int index, int s);
+    int getSteps(int index);
+    
+    bool setPosition(int index, int p);
+    int getPosition(int index);
+    
+    bool setBegin(int index, int b);
+    int getBegin(int index);
+    
+    bool setEnd(int index, int e);
+    int getEnd(int index);
+    
+    bool setReverse(int index, bool r);
+    bool getReverse(int index);
+    
+    bool setSubdiv(int index, SUBDIV subdiv);
+    int getSubdiv(int index);
+    
+    bool setLoopType(int index, SEQ_LOOP_TYPE loop);
+    int getLoopType(int index);
+    
+    bool setCallback(int index, func_cb cb);
+    func_cb getCallback(int index);
+    
+    bool insertNotes(int index, int notes[], int numNotes, int newPosition);
 
 
 private:
@@ -154,67 +174,57 @@ class seq {
     
 private:
     
-    seq(int id, func_cb cb, SUBDIV subdiv);
+    seq(int id, SUBDIV subdiv, func_cb cb);
+    seq(int id, SUBDIV subdiv, int steps, SEQ_LOOP_TYPE loop);
+    seq(int id, SUBDIV subdiv, int steps, SEQ_LOOP_TYPE loop, bool reverse);
     
     int _id;
+    int _steps;
+    int _begin;
+    int _end;
+    int _position;
+    bool _reverse;
+    bool _stopped;
     SUBDIV _subdiv;
+    SEQ_LOOP_TYPE _loop;
     
-    unsigned long lastStep;
-    unsigned long stepNum;
-    unsigned long step;
+    
+    int _notes[MAX_STEPS];
+    int _velocity[MAX_STEPS];
+    int _ccNumbers[MAX_STEPS];
+    int _ccValues[MAX_STEPS];
 
+    unsigned long step;
+    
+    void trigger();
+
+    void setsteps(int s);
+    int getsteps();
+    
+    void setposition(int p);
+    int getposition();
+    
+    void setbegin(int b);
+    int getbegin();
+    
+    void setend(int e);
+    int getend();
+    
+    void setreverse(bool reverse);
+    bool getreverse();
+    
     void setsubdiv(SUBDIV v);
     SUBDIV getsubdiv();
     
-    bool _stopped;
+    void setlooptype(SEQ_LOOP_TYPE loop);
+    SEQ_LOOP_TYPE getlooptype();
     
     void callback(func_cb cb);
     
     func_cb _callback;
-};
-
-
-class iseq {
     
-    friend class iSequencer;
-    
-private:
-    
-    iseq(int id, SUBDIV subdiv, int steps, SEQ_LOOP_TYPE loop);
-    
-    int _id;
-    int _steps;
-    int _length;
-    int _direction;
-    SUBDIV _subdiv;
-    SEQ_LOOP_TYPE _loop;
-    
-    int indx;
-
-    int _notes[];
-    int _velocity[];
-    int _ccNumbers[];
-    int _ccValues[];
-    
-    unsigned long lastStep;
-    unsigned long stepNum;
-    unsigned long step;
-    
-    void setsubdiv(SUBDIV v);
-    SUBDIV getsubdiv();
-
-    void setsteps(int steps);
-    int getsteps();
-
-    void setlooptype(SEQ_LOOP_TYPE loop);
-    SEQ_LOOP_TYPE getlooptype();
-    
-
-    
-    bool _stopped;
-
+    void insertnotes(int notes[], int numNotes, int newPosition);
 };
 
 
 extern MSequencer Sequencer;
-extern iSequencer iSeq;

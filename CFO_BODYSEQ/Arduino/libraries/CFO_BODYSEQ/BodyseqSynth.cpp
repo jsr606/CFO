@@ -2434,16 +2434,16 @@ void MMidi::midiHandler() {
 
 
 void MMidi::noteOff(uint8_t channel, uint8_t note, uint8_t vel) {
-    Serial.print("NoteOff received on channel: ");
-    Serial.println(channel, HEX);
+//    Serial.print("NoteOff received on channel: ");
+//    Serial.println(channel + 1, HEX);
 
     Music.noteOff(note);
 }
 
 
 void MMidi::noteOn(uint8_t channel, uint8_t note, uint8_t vel) {
-    Serial.print("NoteOn received on channel: ");
-    Serial.println(channel, HEX);
+//    Serial.print("NoteOn received on channel: ");
+//    Serial.println(channel + 1, HEX);
     Music.noteOn(note, vel);
 }
 
