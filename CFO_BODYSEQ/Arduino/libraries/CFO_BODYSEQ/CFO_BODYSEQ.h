@@ -29,11 +29,6 @@
 #include "Sequencer.h"
 #include "BodyseqSynth.h"
 
-int notes[8][16];
-int slides[8][16];
-
-int track, step, note;
-
 
 
 

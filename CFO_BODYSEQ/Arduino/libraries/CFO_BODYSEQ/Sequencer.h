@@ -23,7 +23,7 @@
 
 #pragma once
 
-#define MAX_SEQ 3
+#define MAX_SEQ 8
 #define MAX_STEPS 16
 #define INSTR_SEQ 4
 #define ISEQ_NBR_STEPS 32
@@ -64,7 +64,6 @@ enum SEQ_LOOP_TYPE {
 typedef void (*func_cb)(void);
 
 class seq;
-class iseq;
 
 class MSequencer {
 public:

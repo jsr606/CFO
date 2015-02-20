@@ -64,14 +64,14 @@
 #define MUX_A 8
 #define MUX_B 7
 
-#define LP6 4
-#define HP6 5
+#define LP6 0
+#define HP6 1
 #define BP6 2
-#define LP24 0
-#define HP24 1
-#define BP24 6
+#define LP24 6
+#define HP24 4
+#define BP24 5
 #define MOOG 3
-#define THRU 8
+#define THRU 7
 
 // SPI pins
 #define MCP4251_CS 9 // Digital 9
@@ -194,7 +194,7 @@
 #define FM3_SHAPE 38
 #define FREQUENCY3 39
 
-#define CUTOFF 78
+#define CUTOFF_FREQUENCY 78
 #define RESONANCE 79
 #define CUTOFF_MOD_AMOUNT 70
 #define CUTOFF_MOD_DIRECTION 71
@@ -351,16 +351,6 @@ public:
 	void setWaveform1(uint16_t waveForm);   //
 	void setWaveform2(uint16_t waveForm);   //
 	void setWaveform3(uint16_t waveForm);   //
-    void setPhaseDistortion(uint16_t pd);
-    void setPhaseDistortion1(uint16_t pd);
-    void setPhaseDistortion2(uint16_t pd);
-    void setPhaseDistortion3(uint16_t pd);
-    void setWaveformPosition(uint32_t wp);
-    void setWaveformPosition1(uint32_t wp);
-    void setWaveformPosition2(uint32_t wp);
-    void setWaveformPosition3(uint32_t wp);
-    
-    int64_t vectorOscillator(int64_t phase, uint32_t wp, uint16_t pd);
 	
 	// GAIN FUNCTIONS
 	void setGain(float value); // 0.0 - 1.0          
@@ -400,12 +390,6 @@ public:
 	void setEnv2VelSustain(uint8_t vel); // 0 - 127
 	void setEnv2VelPeak(uint8_t vel); // 0 - 127
     
-    
-    void setCommandFlag(uint8_t flag);
-    void clearCommandFlag(uint8_t flag);
-    bool checkCommandFlag(uint8_t flag);
-    void lightLED(uint8_t l);
-		
 	bool osc1LFO;
 	bool osc2LFO;
 	bool osc3LFO;

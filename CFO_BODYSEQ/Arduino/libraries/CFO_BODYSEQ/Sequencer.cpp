@@ -99,7 +99,7 @@ void MSequencer::start()
 
 void MSequencer::continues()
 {
-    clockTick = 0;
+    clockTick = 0;  // is this right????
     for(int i = 0; i < MAX_SEQ; i++) {
         continueSequence(i);
     }
@@ -120,7 +120,10 @@ int MSequencer::newSequence(SUBDIV subdiv, func_cb cb)
 {
     int j = -1;
     for(int i = 0; i < MAX_SEQ; i++) {
-        if(_sequences[i] == NULL) j = i;
+        if(_sequences[i] == NULL) {
+            j = i;
+            break;
+        }
     }
     
     if(j >= 0) {
@@ -138,7 +141,10 @@ int MSequencer::newSequence(SUBDIV subdiv, int steps, SEQ_LOOP_TYPE loop)
 {
     int j = -1;
     for(int i = 0; i < MAX_SEQ; i++) {
-        if(_sequences[i] == NULL) j = i;
+        if(_sequences[i] == NULL) {
+            j = i;
+            break;
+        }
     }
     
     if(j >= 0) {
@@ -156,7 +162,10 @@ int MSequencer::newSequence(SUBDIV subdiv, int steps, int channel)
 {
     int j = -1;
     for(int i = 0; i < MAX_SEQ; i++) {
-        if(_sequences[i] == NULL) j = i;
+        if(_sequences[i] == NULL) {
+            j = i;
+            break;
+        }
     }
     
     if(j >= 0) {
@@ -174,7 +183,10 @@ int MSequencer::newSequence(SUBDIV subdiv, int steps, SEQ_LOOP_TYPE loop, bool r
 {
     int j = -1;
     for(int i = 0; i < MAX_SEQ; i++) {
-        if(_sequences[i] == NULL) j = i;
+        if(_sequences[i] == NULL) {
+            j = i;
+            break;
+        }
     }
     
     if(j >= 0) {
@@ -237,7 +249,8 @@ int MSequencer::getbpm()
 bool MSequencer::setChannel(int index, int channel)
 {
     if(index >= 0 && index < MAX_SEQ && _sequences[index] != NULL) {
-        _sequences[index]->setchannel(channel);
+        _sequences[index]->_channel;
+//        _sequences[index]->setchannel(channel);
         return true;
     }
     return false;
@@ -247,7 +260,8 @@ bool MSequencer::setChannel(int index, int channel)
 int MSequencer::getChannel(int index)
 {
     if(index >= 0 && index < MAX_SEQ && _sequences[index] != NULL) {
-        return _sequences[index]->getchannel();
+        return _sequences[index]->_channel;
+//        return _sequences[index]->getchannel();
     }
     return -1;
 }

@@ -14,450 +14,221 @@
 #include <EEPROM.h>
 #include <CFO_BODYSEQ.h>
 
-const int seqLed [] = {3,4,5,6,7,8,9,10};
-int seqLedVal [] = {0,0,0,0,0,0,0,0};
+#define NUM_TRACKS 8
+#define NUM_STEPS 8
+#define NUM_LEDS 8
 
+int mode;
+
+int track[8];
+int debounceTime = 40;
+
+int _bpm;
+
+const int scale[] = {0, 2, 3, 5, 7, 8, 10, 12};
+//const int octave[] = {-24, -12, 0, 12, 24};
+int rootNote = 36;
+
+int trackPlaying = 0 ;
+int trackSelected = 0;
+int stepSelected = 0;
+int noteSelected = 0;
+int oct = 0;
+
+int notes[64];
+int octave[64];
+int noteValues[8];
+
+int leds;
+int note;
+
+//int var = 0;
+//const int pot1 = A0, pot2 = A1;
+
+// old stuff
+const int seqLed[] = {3,4,5,6,7,8,9,10};
 const int statusLed1 = 13;
-const int buttonPin [] = {11,12,2}; 
+//boolean debug = true;
 
-const int pot1 = A0, pot2 = A1;
-const int bodySwitch [] = {A2,A3,A4,A5,A6,A7,A8,A9};
 
-unsigned long lastPrint = millis();
+/////////////
+// BUTTONS //
+/////////////
+#define NUM_BUTTONS 8
+const int buttonPin [] = {11,12,2};
+int buttonIndex = 0;
+int buttonRead = 0;
+int buttonChange = 0;
+int buttonState[] = {0, 0, 0};
+unsigned long buttonNow = 0;
+unsigned long buttonTime[] = {0, 0, 0};
+int machineState = 0;
 
-boolean sequenceRunning = true;
+//////////
+// KEYS //
+//////////
+#define NUM_KEYS 8
+#define KEY_THRESHOLD 15
+const int keyPin[] = {A2,A3,A4,A5,A6,A7,A8,A9};
+int keyIndex = 0;
+int keyRead = 0;
+int keyValue = 0;
+int keyChange = 0;
+int keyState[] = {0, 0, 0, 0, 0, 0, 0, 0};
+unsigned long keyNow = 0;
+unsigned long keyTime[] = {0, 0, 0, 0, 0, 0, 0, 0};
+int keys;
 
-float maxBodyReading = 0;
-float maxBodyFadeout = 0.9999;
-
-float averageNoise = 0;
-
-int inputFreq = 10;
-unsigned long lastInput = millis();
-
-int seqStep = 0;
-int seqLength = 7;
-int seqNote[] = {-1,-1,0,-1,12,-1,-1,-1,-1,-1,0,-1,24,-1,-1,-1,-1,-1,0,-1,36,-1,-1,-1,-1,-1,0,-1,0,-1,-1,-1,-1,-1,0,-1,12,-1,-1,-1,-1,-1,0,-1,24,-1,-1,-1,-1,-1,0,-1,36,-1,-1,-1,-1,-1,0,-1,0,-1,-1,-1};
-int activeSeq = 0, seqStart = 0, seqEnd = 7;
-unsigned long lastStep = millis();
-int stepTime = 200;
-int baseNote = 36;
-
-const int scale[3][7] = {
-  {0,2,4,5,7,9,11}, // major
-  {0,2,3,5,6,7,10}, // blues
-  {0,3,4,7,9,10,-1} // rock
-};
-
-const int scaleLength = 24;
-int activeScale [scaleLength];
-
-int bodySwitchVal [] = {0,0,0,0,0,0,0,0};
-
-boolean bodySwitchesTouched = false;
-
-int mode = 0;
-int preset = 16;
-
-boolean buttonState [] = {HIGH, HIGH, HIGH};
-boolean buttonAction [] = {false, false, false};
-
-int potVal1 = 0, potVal2 = 0;
-boolean pot1Moved = false, pot2Moved = false, potsMoved = false;
-int potNoise = 1;
-
-boolean debug = true;
 
 void setup() {
-
-  // We initialise the sound engine by calling Music.init() which outputs a tone
   Music.init();
   Music.enableEnvelope1();
   Music.enableEnvelope2();
-  Music.getPreset(16);
-  Music.setEnv1Decay(36);
-  Music.setEnv1Sustain(0);
-
+  Music.getPreset(13);
   usbMIDI.setHandleNoteOff(OnNoteOff);
   usbMIDI.setHandleNoteOn(OnNoteOn);
   usbMIDI.setHandleControlChange(OnControlChange);
-
+  usbMIDI.setHandleRealTimeSystem(RealTimeSystem);
   analogReadAveraging(32);
-
-  Serial.begin(9600);
-
-  delay(100);
-
-  Serial.println("hello");
-
-  pinMode(buttonPin[0], INPUT_PULLUP);
-  pinMode(buttonPin[1], INPUT_PULLUP);
-  pinMode(buttonPin[2], INPUT_PULLUP);
-
-  newActiveScale(scaleLength);
-
-  pinMode(statusLed1,OUTPUT);
-  for (int i = 0; i<8; i++) {
-    pinMode(seqLed[i], OUTPUT);
-  }
-
-  startupAnimation();
-  sampleAverageNoise();  
+  delay(2000);
+  Sequencer.init(120);
+  setupSequences();
+  initInterface();  
 }
+
 
 void loop() {
-  // check for incoming USB MIDI messages
+  Sequencer.update();
   usbMIDI.read();
+  Midi.checkSerialMidi();
+  readButtons();
+  readKeys();
+  checkBPM();
+  Music.setCutoffModAmount((analogRead(A1))*64);
 
-  if (lastInput + inputFreq < millis()) {
-    // check user input
-    readPots();
-    readBodyswitches(); 
-    readButtons();
-
-    // general navigation
-    // button 0 pushed
-    if (buttonState[0] == LOW) {
-      noteInputFromBodyswitches();
+  //  if(buttonChange || keyChange) {
+    switch(machineState) {
+      case 0:
+        playTrack();
+        break;
+      case 1:
+        selectNote();
+        break;
+      case 2:
+        selectStep();
+        break;
+      case 3: // nothing
+        break;
+      case 4:
+        selectTrack();
+        break;
+      case 5: // nothing
+        break;
+      case 6: // nothing
+        break;
+      case 7: // nothing
+        break;
+      default:
+        break;
     }
-    
-    // button 1 pushed
-    if (buttonState[1] == LOW) {
-      eraseNotesFromBodyswitches();
-      if (pot1Moved) {
-        // change sequencer speed
-        stepTime = map(analogRead(pot1),0,1023,1000,0);
-        potsMoved = false; 
+    updateLEDs();
+//    buttonChange = 0;
+//  }
+}
+  
+  
+void playTrack() {
+  if(keyChange) {
+    Serial.println("PLAY TRACK");
+  // code here
+  keyChange = 0;
+  }
+}
+
+void selectNote() {
+  noteSelected = notes[stepSelected + 8 * trackSelected];
+  oct = octave[stepSelected + 8 * trackSelected];
+  if(keyChange) {
+    for(int i = 0; i < NUM_KEYS-1; i++) {
+      if(keys & (1 << i)) noteSelected = i;
+      notes[stepSelected + 8 * trackSelected] = noteSelected;
+    }
+    if(keys & (1 << 7)) {
+      oct ^= 1;
+      octave[stepSelected + 8 * trackSelected] = oct;
+    }
+    for(int i = 0; i < NUM_STEPS; i++) {
+      noteValues[i] = rootNote + scale[notes[8 * trackSelected + i]] + octave[i + 8 * trackSelected] * 12;
+      Sequencer.insertNotes(track[trackSelected], noteValues, 8, 0);
+    }        
+    keyChange = 0;    
+  }
+}
+
+void selectStep() {
+  if(keyChange) {
+    Serial.println("SELECT STEP");
+    for(int i = 0; i < NUM_KEYS; i++) {
+  // code here
+      if(keys & (1 << i)) {
+        stepSelected = i;
+        Serial.print("Step selected: ");
+        Serial.println(stepSelected);
       }
-    }  
-    
-    // button 2 pushed
-    if (buttonState[2] == LOW) {
-      changeMode();
-      activeSeq = mode;
-      if (pot2Moved) {
-        changePreset();
-        potsMoved = false;
+    }
+    keyChange = 0;
+  }
+}
+
+void selectTrack() {
+//  if(keys > 0) {
+  if(keyChange) {
+    Serial.println("SELECT TRACK");
+    for(int i = 0; i < NUM_KEYS; i++) {
+//      Serial.print("Rechecking sequence on position ");
+//      Serial.print(i);
+//      Serial.print(". It is set to sequence index ");
+//      Serial.println(track[i]);
+      Sequencer.setInternal(track[i], false);
+      if(keys & (1 << i)) {
+        trackSelected = i;
+        Serial.print("trackSelected shows ");
+        Serial.print(trackSelected);
+        Serial.print(" - Track selected: ");
+        Serial.println(track[trackSelected]);
       }
-      if (pot1Moved) {
-        changeOctave();
-        potsMoved = false;
-      }
+      Sequencer.setInternal(track[trackSelected], true);
     }
-    
-    // button 0 and 2 pushed
-    if (buttonState[2] == LOW && buttonState[0] == LOW) {
-      int lowestSwitch = 0, highestSwitch = 0;
-      if (bodySwitchesTouched) {
-        for (int i = 0; i<8; i++) {
-          if (bodySwitchVal[i] > 0) {
-            highestSwitch = i;
-          }
-          if (bodySwitchVal[7-i] > 0) {
-            lowestSwitch = 7-i;
-          }
-        }
-        seqStart = lowestSwitch;
-        seqEnd = highestSwitch;
-      }
+    keyChange = 0;
+  }
+  // code here
+}
+
+
+void setupSequences() {
+  for(int i = 0; i < NUM_TRACKS; i++) {
+    for(int j = 0; j < NUM_STEPS; j++) {
+      notes[8*i + j] = j;
     }
-    lastInput = millis();
-  }
-
-  if (sequenceRunning) updateSequence();
-  if (potsMoved) setCutoffFromPots();
-}
-
-void sampleAverageNoise() {
-  Serial.print("sampling average noise levels: ");
-
-  for (int i = 0; i<8; i++) {
-    pinMode(seqLed[i], OUTPUT);
-    averageNoise += analogRead(bodySwitch[i]);
-  }
-  averageNoise = averageNoise/8 + 3;
-  Serial.println(averageNoise);
-}
-
-void setCutoffFromPots() {
-  Music.setCutoff((analogRead(pot1))*64);
-  Music.setCutoffModAmount((analogRead(pot2))*64);
-}
-
-void updateLEDs() {
-  for (int i = 0; i<8; i++) {
-    if (seqNote[activeSeq*8+i] != -1) {
-      digitalWrite(seqLed[i], HIGH);
-    } 
-    else {
-      digitalWrite(seqLed[i], LOW);
+    track[i] = Sequencer.newSequence(NOTE_16, 8, LOOP);
+    Serial.print("Track created for sequence ");
+    Serial.print(track[i]);
+    Serial.print(" on position ");
+    Serial.println(i);
+    Sequencer.startSequence(track[i]);
+    for(int j = 0; j < NUM_STEPS; j++) {
+      noteValues[j] = rootNote + scale[notes[8 * i + j]] + octave[8 * i + j] * 12;
     }
+    Sequencer.insertNotes(track[i], noteValues, 8, 0);
+    Sequencer.setInternal(track[i], true);
+    Sequencer.setExternal(track[i], false);
+    Serial.print("Internal set to ");
+    Serial.println(Sequencer.getInternal(track[i]));
   }
-}
-
-void newActiveScale (int length) {
-  Serial.println("lets make a new active scale");
-  int amountOfNotesInScale = 0;
-  for (int i = 0; i<7; i++) {
-    if (scale[1][i] != -1) amountOfNotesInScale++;
-  }
-
-  for (int i = 0; i<length+1; i++) {
-    int currentOctave = i/amountOfNotesInScale;
-    Serial.print("octave ");
-    Serial.print(currentOctave);
-    int currentNote = scale[1][i%amountOfNotesInScale];
-    Serial.print("\tnote ");
-    Serial.print(currentNote);
-    activeScale[i] = currentOctave*12+currentNote;
-    Serial.print("\tthis yields ");
-    Serial.println(activeScale[i]);
-  }
-}
-
-void eraseNotesFromBodyswitches() {
-  for (int i = 0; i<8; i++) {
-    if (bodySwitchVal[i] > 0) {
-      seqNote[activeSeq*8+i] = -1;
-    }
-  }
-  updateLEDs();
-}
-
-void noteInputFromBodyswitches() {
-  for (int i = 0; i<8; i++) {
-    if (bodySwitchVal[i] > 0) {
-
-      if (debug) Serial.print(i);
-      if (debug) Serial.print(": ");
-      if (debug) Serial.print(bodySwitchVal[i]);
-
-      int note = map(bodySwitchVal[i],0,127,0,scaleLength-1);
-
-      if (debug) Serial.print("\tnote: ");
-      if (debug) Serial.print(note);
-
-      seqNote[activeSeq*8+i] = activeScale[note];
-      
-      if (debug) Serial.print("\tseqNote: ");
-      if (debug) Serial.println(seqNote[activeSeq*8+i]);
-    }
-  }
-  updateLEDs();
-}
-
-void readPots() {
-  int newPotVal1 = 1023-analogRead(pot1);
-  int newPotVal2 = 1023-analogRead(pot2);
-
-
-  potsMoved = false;
-
-  if ( (newPotVal1 < (potVal1-potNoise)) || (newPotVal1 > (potVal1+potNoise)) ) {
-    potVal1 = newPotVal1;
-    pot1Moved = true;
-    potsMoved = true;
-  } 
-  else {
-    pot1Moved = false;
-  }
-  if ( (newPotVal2 < (potVal2-potNoise)) || (newPotVal2 > (potVal2+potNoise)) ) {
-    potVal2 = newPotVal2;
-    pot2Moved = true;
-    potsMoved = true;
-  } 
-  else {
-    pot2Moved = false;
-  }
-
-  if (potsMoved) {
-    Serial.print("pot 1 ");
-    Serial.println(potVal1);
-    Serial.print("pot 2 ");
-    Serial.println(potVal2);
-  }
-
-}
-
-void changeOctave() {
-
-  // change from pot
-  int newOctave = map(analogRead(pot1),0,1023,-3,4);
-
-  baseNote = 36 + newOctave*12;
-
-  for (int i = 0; i<8; i++) {
-    if (newOctave+3 == i) {
-      //      SoftPWMSet(seqLed[i],255);
-      digitalWrite(seqLed[i],HIGH);
-    } 
-    else {
-      //      SoftPWMSet(seqLed[i],0);
-      digitalWrite(seqLed[i],LOW);
-    }
-  }
-
-}
-
-void changeMode() {
-
-  // select mode with body switches
-
-  int highest = -1, highestVal = averageNoise;
-  for (int i=0; i<8; i++) {
-    if (bodySwitchVal[i] > highestVal) {
-      highest = i;
-      highestVal = bodySwitchVal[i];
-    }
-  }
-  if (highest != -1) {
-    mode = highest; 
-  }
-  updateLEDs();
-}
-
-void changePreset() {
-  int newPreset = map(analogRead(pot2),0,1023,63,0);
-  if (preset != newPreset) { // only do something if preset has changed
-    // NB! user preset 0-16 might be empty, resulting in crazy sounds!
-    if (debug) Serial.print("new preset ");
-    if (debug) Serial.println(newPreset);
-    preset = newPreset;
-    Music.getPreset(preset);
-  }
-}
-
-void updateSequence() {
-
-  if (lastStep + stepTime < millis()) {
-
-    seqStep++;
-    if (seqStep > seqEnd) seqStep = seqStart;
-
-    int note = activeSeq*8+seqStep;  
-
-    if (seqNote[note] != -1) {
-      Music.noteOn(baseNote+seqNote[note]);
-    }
-    lastStep = millis();
-
-  }
-
-  updateLEDs();
-
-  int blinkTime = max(stepTime/5,100);
-
-  if (lastStep + blinkTime < millis()) {
-    digitalWrite(seqLed[seqStep], HIGH);
-  }
-  if (lastStep + stepTime - blinkTime < millis()) {
-    digitalWrite(seqLed[seqStep], LOW);
-  }  
-}
-
-
-void readBodyswitches() {
-  bodySwitchesTouched = false;
-  for (int i = 0; i<8; i++) {
-
-    int reading = constrain(analogRead (bodySwitch[i]),0,127);
-    maxBodyReading = max(maxBodyReading, reading);
-
-    if (reading > averageNoise) { // averageNoise is sampled on startup
-      int midiVal = map (reading, averageNoise, maxBodyReading, 0, 127);
-      bodySwitchVal[i] = constrain(midiVal,0,127);
-      bodySwitchesTouched = true;
-    } 
-    else {
-      bodySwitchVal[i] = 0;
-      reading = 0;
-    }
-    seqLedVal[i] = reading*2;
-  }
-
-  maxBodyReading = maxBodyReading * maxBodyFadeout;  
-}
-
-void printFeedback() {
-  for (int i = 0; i<8; i++) {
-    int reading = analogRead (bodySwitch[i]);
-
-    seqLedVal[i] = reading/4;
+  for(int i = 0; i < NUM_TRACKS; i++) {
+    Serial.print("Rechecking sequence on position ");
     Serial.print(i);
-    Serial.print(": ");
-    Serial.print(reading);
-    Serial.print("\t");
-  }
-  Serial.println();
-  int potVal1 = analogRead(pot1);
-  int potVal2 = analogRead(pot2);
-  Serial.print(potVal1);
-  Serial.print("\t");
-  Serial.print(potVal2);
-  Serial.println();
-
-
-}
-
-void startupAnimation() {
-  digitalWrite(statusLed1, HIGH);
-
-  for (int i = 0; i<8; i++) {
-    digitalWrite(seqLed[i],HIGH);
-    delay(30); 
-  }
-  for (int i = 0; i<8; i++) {
-    digitalWrite(seqLed[i],LOW);
-    delay(30); 
-  }
-
-
-  for (int i = 0; i<8; i++) {
-    digitalWrite(seqLed[7-i],HIGH);
-    delay(30); 
-  }
-  for (int i = 0; i<8; i++) {
-    digitalWrite(seqLed[7-i],LOW);
-    delay(30); 
-  }
-
-  digitalWrite(statusLed1, LOW);
-  
-  delay(100);
-}
-
-void readButtons() {
-  // buttons are active low
-  
-  for (int i = 0; i<3; i++) {
-    if (digitalRead(buttonPin[i]) == HIGH) {
-      if (buttonState[i] == LOW) {
-        // button has just been released
-        buttonAction[i] = true;
-        if (debug) Serial.print("button ");
-        if (debug) Serial.print(i);
-        if (debug) Serial.println(" has just been released");
-      } else {
-        // button was already released, no action here       
-        buttonAction[i] = false;
-      }
-      buttonState[i] = HIGH;
-    }
-
-    if (digitalRead(buttonPin[i]) == LOW) {
-      if (buttonState[i] == HIGH) {
-        // button has just been pushed
-        buttonAction[i] = true;
-        if (debug) Serial.print("button ");
-        if (debug) Serial.print(i);
-        if (debug) Serial.println(" has just been pushed");     
-        buttonState[i] = LOW;
-      } else {
-        // button was already psuhed, no action here
-        buttonAction[i] = false;
-      }
-    } 
+    Serial.print(" - set to sequence index ");
+    Serial.println(track[i]);
   }
 }
-
-
