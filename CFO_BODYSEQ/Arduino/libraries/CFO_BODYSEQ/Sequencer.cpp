@@ -59,7 +59,9 @@ void MSequencer::update()
         if(s == NULL || s->_stopped) continue;
         if(clockTick >= s -> step) {
             if(s -> _steps) {
+//                Serial.println("_steps");
                 s -> trigger();
+//                Serial.println("trigger");
             } else {
                 s->_callback();
             }
@@ -549,13 +551,29 @@ seq::seq(int id, SUBDIV subdiv,  int steps, SEQ_LOOP_TYPE loop, bool reverse) : 
 
 void seq::trigger()
 {
+    if(_begin < 0 ) {
+        Serial.print("_begin is ");
+        Serial.println(_begin);
+        _begin = 0;
+    }
+//    Serial.print("_end is ");
+//    Serial.println(_end);
+//    Serial.print("_position is ");
+//    Serial.println(_position);
+//    Serial.println("enter trigger");
+
     if(_internal) {
+//        Serial.println("enter conditional");
         Midi.noteOff(_channel, _notes[_lastposition], _velocity[_lastposition]);
+//        Serial.println("internal noteOff");
         Midi.noteOn(_channel, _notes[_position], _velocity[_position]);
+//        Serial.println("internal noteOff");
     }
     if(_external) {
         Midi.sendNoteOff(_channel, _notes[_lastposition], _velocity[_lastposition]);
+//        Serial.println("external noteOff");
         Midi.sendNoteOn(_channel, _notes[_position], _velocity[_position]);
+//        Serial.println("external noteOff");
     }
     
     _lastposition = _position;
@@ -572,7 +590,14 @@ void seq::trigger()
             if(!_loop) _stopped = true;
         }
         _lastposition = _position;
+//        Serial.print("_last position is ");
+//        Serial.println(_lastposition);
+//        Serial.println();
         _position++;
+//        Serial.print("_position is ");
+//        Serial.println(_position);
+//        Serial.println();
+
     }
 //    Serial.println("triggered");
 }

@@ -194,8 +194,10 @@
 #define FM3_SHAPE 38
 #define FREQUENCY3 39
 
-#define CUTOFF_FREQUENCY 78
-#define RESONANCE 79
+#define SONG_PART 40
+#define SONG_KEY 41
+#define SONG_BPM 42 // not needed
+
 #define CUTOFF_MOD_AMOUNT 70
 #define CUTOFF_MOD_DIRECTION 71
 #define CUTOFF_SOURCE 72
@@ -204,29 +206,33 @@
 #define RESONANCE_MOD_DIRECTION 75
 #define RESONANCE_SOURCE 76
 #define RESONANCE_SHAPE 77
+#define CUTOFF_FREQUENCY 78
+#define RESONANCE 79
+
+#define SEQ_INTERNAL_CLOCK 80
+#define SEQ_CLOCK_IN 81
+#define SEQ_CLOCK_THRU 82
+#define SEQ_CLOCK_OUT 83
+#define SEQ_BPM 84
+#define SEQ_SEQUENCE 85
+#define SEQ_POSITION 86
+#define SEQ_VALUE 87
+#define SEQ_INTERNAL 88
+#define SEQ_EXTERNAL 89
+#define SEQ_STEPS 90
+#define SEQ_BEGIN 91
+#define SEQ_END 92
+#define SEQ_SUBDIV 93
+#define SEQ_LOOP 94 // NO_LOOP, LOOP [, PINGPONG, BACKWARDS, STEP]
+#define SEQ_START 95
+#define SEQ_STOP 96
+#define SEQ_CONTINUE 97
+#define SEQ_JUMP_POSITION 98
 
 
-#define SEQ_WRITE_ISEQ 80
-#define SEQ_WRITE_SEQUENCER 81
-#define SEQ_WRITE_POSITION 82
-#define SEQ_WRITE_VALUE 83
-#define SEQ_START 84
-#define SEQ_STOP 85
-#define SEQ_PAUSE 86
-#define SEQ_JUMP_POSITION 87
-#define SEQ_BPM 88
-#define SEQ_SYNC 89
-#define SEQ_ON 89
-#define SEQ_ON 89
-#define SEQ_LOOP 89 // NO_LOOP, LOOP, PINGPONG, BACKWARDS, STEP
-#define SEQ_ON 89
-#define SEQ_ON 89
-#define SEQ_ON 89
-
-
-#define CFO_COMMAND 90
-#define CFO_LIGHT_LED 91
-#define SEQ_STEP_FORWARD 0
+//#define CFO_COMMAND 90
+//#define CFO_LIGHT_LED 91
+//#define SEQ_STEP_FORWARD 0
 
 
 #define ENV0_VELOCITY 102

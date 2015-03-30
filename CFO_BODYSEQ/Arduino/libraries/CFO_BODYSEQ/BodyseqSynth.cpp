@@ -1779,13 +1779,16 @@ void MMidi::init()
 {
 	pinMode(0, INPUT);
     pinMode(1, OUTPUT);
-    Serial.begin(9600);
-    MIDI_SERIAL.begin(9600);
+//    Serial.begin(9600);
+//    MIDI_SERIAL.begin(9600);
+    Serial.begin(115200);
+    MIDI_SERIAL.begin(115200);
     
     setMidiIn(true);
     setMidiOut(true);
     setMidiThru(true);
     setMidiClockIn(true);
+    setMidiClockThru(true);
     setMidiClockOut(true);
     
 	midiBufferIndex = 0;
@@ -1953,6 +1956,7 @@ void MMidi::checkSerialMidi()
         if(data >= 0xF8) {
             midiRealTimeHandler(data);
 //            RealTimeSystem(byte(data));
+            continue;
         }
         
 //		if(data & 0x80 && (data & 0x0F) == midiChannel) {	// bitmask with 10000000 to see if byte is over 127 (data&0x80)
@@ -1977,10 +1981,10 @@ void MMidi::checkSerialMidi()
 			if (midiBufferIndex > 2) {
 				midiRead = false;
 				midiHandler();
-                Serial.println("MIDI RECEIVED");
-                Serial.println(midiBuffer[0], HEX);
-                Serial.println(midiBuffer[1], HEX);
-                Serial.println(midiBuffer[2], HEX);
+//                Serial.println("MIDI RECEIVED");
+//                Serial.println(midiBuffer[0], HEX);
+//                Serial.println(midiBuffer[1], HEX);
+//                Serial.println(midiBuffer[2], HEX);
 			}
 		}
 	}	
