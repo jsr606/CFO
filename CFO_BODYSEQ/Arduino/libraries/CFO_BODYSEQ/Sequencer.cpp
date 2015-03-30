@@ -470,6 +470,15 @@ bool MSequencer::insertNotes(int index, int notes[], int numNotes, int newPositi
 }
 
 
+int MSequencer::setSelectedSequence(int s)
+{
+    if(s < 0) s = 0;
+    if(s > MAX_SEQ) s = MAX_SEQ - 1;
+    selectedSequence = s;
+    return selectedSequence;
+}
+
+
 
 // seq
 

@@ -30,10 +30,10 @@ void setup() {
   Sequencer.init(140);
   
   s1 = Sequencer.newSequence(NOTE_16, 16, LOOP);
-  Sequencer.startSequence(s1);
   Sequencer.insertNotes(s1, notes1, 16, 0);
   Sequencer.setInternal(s1, true);
   Sequencer.setExternal(s1, false);
+  Sequencer.startSequence(s1);
 
   Midi.setMidiIn(false);
   Midi.setMidiThru(false);

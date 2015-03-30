@@ -130,7 +130,13 @@ public:
     func_cb getCallback(int index);
     
     bool insertNotes(int index, int notes[], int numNotes, int newPosition);
+    
+    int setSelectedSequence(int s);
+    int getSelectedSequence();
 
+    bool setSelectPosition(int s);
+    int getSelectedPosition();
+    
 
 private:
     seq* _sequences[MAX_SEQ];
@@ -141,6 +147,10 @@ private:
     unsigned long timeNow;
     unsigned long lastTime;
     unsigned long tickTime;
+
+    int selectedSequence;
+    int selectedPosition;
+    
 
     
 };
