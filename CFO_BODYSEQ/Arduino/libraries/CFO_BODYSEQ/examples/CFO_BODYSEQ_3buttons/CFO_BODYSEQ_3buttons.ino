@@ -74,13 +74,14 @@ void setup() {
   Music.init();
   Music.enableEnvelope1();
   Music.enableEnvelope2();
-  Music.getPreset(16);
+  Music.getPreset(13);
   Music.setEnv1Decay(36);
   Music.setEnv1Sustain(0);
 
   usbMIDI.setHandleNoteOff(OnNoteOff);
   usbMIDI.setHandleNoteOn(OnNoteOn);
   usbMIDI.setHandleControlChange(OnControlChange);
+  usbMIDI.setHandleRealTimeSystem(RealTimeSystem);
 
   analogReadAveraging(32);
 

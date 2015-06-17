@@ -6,7 +6,7 @@
 
 // sequence ID
 int s1, s2;
-int _bpm, _eend, _beegin;
+int _bpm = 120;
 
 // sequence step index
 int indx1 = 0;
@@ -33,19 +33,15 @@ void setup() {
   usbMIDI.setHandleControlChange(OnControlChange);
   usbMIDI.setHandleRealTimeSystem(RealTimeSystem);
   
-  analogReadAveraging(32);
+  Sequencer.init(_bpm);
   
-  Sequencer.init(120);
-  
-//  s1 = Sequencer.newSequence(NOTE_16, 16, LOOP, !REVERSE); // overloaded function
   s1 = Sequencer.newSequence(NOTE_16, 16, LOOP);
   Sequencer.startSequence(s1);
   Sequencer.insertNotes(s1, notes1, 16, 0);
   Sequencer.insertNotes(s1, vels, 7, 8); 
   Sequencer.insertNotes(s1, vels, 3, 2); 
   Sequencer.setInternal(s1, true);
-  Sequencer.setExternal(s1, false);
-  
+  Sequencer.setExternal(s1, true  );
 }
 
 void loop() {
@@ -54,12 +50,11 @@ void loop() {
   usbMIDI.read();
   Midi.checkSerialMidi();
   checkBPM();
-//  checkBeegin();
-  checkEend();
 }
 
 void checkBPM() {
-  int bpm = analogRead(A0)>>2;
+//  int bpm = analogRead(A0)>>2;
+  int bpm = 0;
   if(bpm != _bpm) {
     _bpm = bpm;
     Serial.println(_bpm);
@@ -75,29 +70,12 @@ void checkBPM() {
     } else {
       Midi.setMidiIn(false);
       Midi.setMidiThru(false);
-      Midi.setMidiOut(false);
+      Midi.setMidiOut(true);
       Midi.setMidiClockIn(false);
       Midi.setMidiClockThru(false);
       Midi.setMidiClockOut(false);
       Sequencer.setInternalClock(true);
 //      Sequencer.sequencerContinue();
     }
-  }
-}
-
-
-void checkBeegin() {
-  int beegin = analogRead(A0)>>6;
-  if(beegin != _beegin) {
-    _beegin = beegin;
-    Sequencer.setBegin(s1, _beegin);
-  }
-}
-
-void checkEend() {
-  int eend = analogRead(A1)>>6;
-  if(eend != _eend) {
-    _eend = eend;
-    Sequencer.setEnd(s1, _eend);
   }
 }

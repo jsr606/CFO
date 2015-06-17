@@ -251,8 +251,8 @@ int MSequencer::getbpm()
 bool MSequencer::setChannel(int index, int channel)
 {
     if(index >= 0 && index < MAX_SEQ && _sequences[index] != NULL) {
-        _sequences[index]->_channel;
-//        _sequences[index]->setchannel(channel);
+//        _sequences[index]->_channel;
+        _sequences[index]->setchannel(channel);
         return true;
     }
     return false;

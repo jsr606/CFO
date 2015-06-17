@@ -24,7 +24,6 @@
 
 #include <Arduino.h>
 #include <spi4teensy3.h>
-#include "MCP4251.h"
 #include <EEPROM.h>
 #include <Math.h>
 #include "Sequencer.h"
@@ -157,7 +156,7 @@
 #define CUTOFF 4
 #define ZERO_HZ_FM 5
 #define FM_OCTAVES 6
-#define RESONANCE 7
+#define RESONANCE_OLD 7
 #define PORTAMENTO 8
 #define FILTER_TYPE 9
 

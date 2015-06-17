@@ -1,5 +1,7 @@
 #define MIDI_CHANNEL 1
 
+#include <Wire.h>
+#include <Adafruit_TCS34725.h>
 #include <spi4teensy3.h>
 #include <EEPROM.h>
 #include <Haarnet.h>
@@ -25,11 +27,11 @@ void setup() {
   usbMIDI.setHandleControlChange(OnControlChange);
   
     // this is the sequencer code
-  Sequencer.init();
+  Sequencer.init(128);
 
   //Sequencer.newSequence(BPM, CALLBACK, SUBDIV);
   // create new sequence and ID (s1)
-  s1 = Sequencer.newSequence(128, &s1cb, 16);      
+  s1 = Sequencer.newSequence(&s1cb, NOTE_16);      
 
   // start sequence 1
   Sequencer.startSequence(s1);

@@ -27,8 +27,6 @@ IntervalTimer synthTimer;
 unsigned long timerCounter1 = 0;
 unsigned long timerCounter2 = 0;
 
-//MCP4251 Mcp4251 = MCP4251( MCP4251_CS, 100000.0 ); 
-
 MMusic Music;
 
 MMidi Midi;
@@ -1782,7 +1780,7 @@ void MMidi::init()
 //    Serial.begin(9600);
 //    MIDI_SERIAL.begin(9600);
     Serial.begin(115200);
-    MIDI_SERIAL.begin(115200);
+    MIDI_SERIAL.begin(31250);
     
     setMidiIn(true);
     setMidiOut(true);

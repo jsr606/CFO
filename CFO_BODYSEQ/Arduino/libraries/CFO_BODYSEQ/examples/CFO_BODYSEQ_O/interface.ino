@@ -77,7 +77,7 @@ void checkBPM() {
       Midi.setMidiClockIn(false);
       Midi.setMidiClockThru(false);
       Midi.setMidiClockOut(false);
-      Sequencer.setInternalClock(true);
+      Sequencer.setInternalClock(false);
 //      Sequencer.sequencerContinue();
     }
   }
