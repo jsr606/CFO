@@ -197,6 +197,9 @@ private:
     void setsteps(int s);
     int getsteps();
     
+    void setcurrentstep(int s);
+    int getcurrentstep();
+    
     void setposition(int p);
     int getposition();
     

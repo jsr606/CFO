@@ -64,6 +64,7 @@ void MSequencer::update()
 //                Serial.println("trigger");
             } else {
                 s->_callback();
+                Serial.println("callback");
             }
             s->step += s -> _subdiv;
         }
@@ -486,6 +487,8 @@ seq::seq(int id, SUBDIV subdiv, func_cb cb) : _id(id), _stopped(true)
 {
     setsubdiv(subdiv);
     callback(cb);
+    setcurrentstep(0);
+    setsteps(0);
 }
 
 
@@ -647,6 +650,18 @@ void seq::setsteps(int s)
 int seq::getsteps()
 {
     return _steps;
+}
+
+
+void seq::setcurrentstep(int s)
+{
+    step = s;
+}
+
+
+int seq::getcurrentstep()
+{
+    return step;
 }
 
 
