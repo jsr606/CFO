@@ -2,7 +2,7 @@
 
 #include <spi4teensy3.h>
 #include <EEPROM.h>
-#include <CFO_BODYSEQ.h>
+#include "CFO_BODYSEQ.h"
 
 // sequence ID
 int s1, s2;
@@ -60,12 +60,12 @@ void checkBPM() {
     Serial.println(_bpm);
     Sequencer.setbpm(_bpm);
     if(_bpm == 0) {
-      Midi.setMidiIn(true);
+      Midi.setMidiIn(false);
       Midi.setMidiThru(true);
-      Midi.setMidiOut(true);
+      Midi.setMidiOut(false);
       Midi.setMidiClockIn(true);
       Midi.setMidiClockThru(true);
-      Midi.setMidiClockOut(true);
+      Midi.setMidiClockOut(false);
       Sequencer.setInternalClock(false);
     } else {
       Midi.setMidiIn(false);
@@ -73,7 +73,7 @@ void checkBPM() {
       Midi.setMidiOut(true);
       Midi.setMidiClockIn(false);
       Midi.setMidiClockThru(false);
-      Midi.setMidiClockOut(false);
+      Midi.setMidiClockOut(true);
       Sequencer.setInternalClock(true);
 //      Sequencer.sequencerContinue();
     }

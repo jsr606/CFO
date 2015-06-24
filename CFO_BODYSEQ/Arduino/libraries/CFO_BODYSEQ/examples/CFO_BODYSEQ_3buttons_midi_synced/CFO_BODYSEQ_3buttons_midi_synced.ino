@@ -317,7 +317,7 @@ void changeOctave() {
 void changeMode() {
 
   // select mode with body switches
-
+  
   int highest = -1, highestVal = averageNoise;
   for (int i=0; i<8; i++) {
     if (bodySwitchVal[i] > highestVal) {
@@ -332,7 +332,7 @@ void changeMode() {
 }
 
 void changePreset() {
-  int newPreset = map(analogRead(pot2),0,1023,63,0);
+  int newPreset = map(analogRead(pot2),0,1023,15,0);
   if (preset != newPreset) { // only do something if preset has changed
     // NB! user preset 0-16 might be empty, resulting in crazy sounds!
     if (debug) Serial.print("new preset ");

@@ -64,7 +64,7 @@ void MSequencer::update()
 //                Serial.println("trigger");
             } else {
                 s->_callback();
-                Serial.println("callback");
+//                Serial.println("callback");
             }
             s->step += s -> _subdiv;
         }
