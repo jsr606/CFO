@@ -13,8 +13,8 @@ int indx1 = 0;
 int indx2 = 0;
 const int nbr_notes1 = 8;  // try with 16 :)
 const int nbr_steps2 = 8;
-//int notes1[] = {12, 24,  7, 12, 36, 12, 24, 15, 0, 12, 48, 36, 19, 24, 3, 36};
-int notes1[] = {36, 48, 31, 36, 60, 36, 48, 39, 24, 36, 72, 60, 43, 48, 27, 60};
+int notes1[] = {12, 24,  7, 12, 36, 12, 24, 15, 0, 12, 48, 36, 19, 24, 3, 36};
+//int notes1[] = {36, 48, 31, 36, 60, 36, 48, 39, 24, 36, 72, 60, 43, 48, 27, 60};
 int notes2[] = {0, 2, 3, 5, 6, 8, 10, 12};
 int vels[] = {100, 72, 96, 64, 112, 88, 78, 96};
 
@@ -54,7 +54,7 @@ void loop() {
 
 void checkBPM() {
 //  int bpm = analogRead(A0)>>2;
-  int bpm = 0;
+  int bpm = 124;
   if(bpm != _bpm) {
     _bpm = bpm;
     Serial.println(_bpm);

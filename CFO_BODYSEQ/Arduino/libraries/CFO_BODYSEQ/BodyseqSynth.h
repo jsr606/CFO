@@ -80,6 +80,9 @@
 #define CPU_FREQ 96 // in MHz
 #define PERIOD_MAX BIT_32
 
+// Sampler specific constants
+#define NUM_SAMPLES 16
+
 // Specify highest and lowest pitch in Hz
 #define LOW_PITCH 55
 #define HIGH_PITCH 1000
@@ -282,6 +285,7 @@ public:
 	void synthInterrupt12bitSineFM();
 	void synthInterrupt12bitSawFM();
     void phaseDistortionOscillator();
+    void samplerInterrupt();
     
 	void envelope1();
 	void envelope2();
@@ -435,9 +439,7 @@ private:
 	bool sine;
 	bool saw;
 	bool square;
-    
-    
-	
+    	
 	// FREQUENCY VARIABLES
 	uint16_t frequency16bit;
 	float frequency;

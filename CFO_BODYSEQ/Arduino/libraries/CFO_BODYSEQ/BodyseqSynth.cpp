@@ -45,6 +45,7 @@ const float hertzTable[] = {
 #include <FrictionHertzTable.inc>	
 };
 
+
 uint8_t sequencer[128];
 uint8_t instrument[128];
 uint8_t userPresets[MAX_PRESETS][PRESET_SIZE];
@@ -209,6 +210,11 @@ void MMusic::synthInterrupt8bitFM ()
 	
 	sample >>= 18;
 
+}
+
+void MMusic::samplerInterrupt()
+{
+    
 }
 
 
@@ -2343,22 +2349,22 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			Music.sendInstrument();
 			break;
         case SEQ_INTERNAL_CLOCK:
-            Sequencer.setInternalClock(value);
+//            Sequencer.setInternalClock(value);
             break;
         case SEQ_CLOCK_IN:
-            setMidiClockIn(value);
+//            setMidiClockIn(value);
             break;
         case SEQ_CLOCK_THRU:
-            setMidiClockThru(value);
+//            setMidiClockThru(value);
             break;
         case SEQ_CLOCK_OUT:
-            setMidiClockOut(value);
+//            setMidiClockOut(value);
             break;
         case SEQ_BPM:
-            Sequencer.setbpm(60 + value);
+//            Sequencer.setbpm(60 + value);
             break;
         case SEQ_SEQUENCE:
-            Sequencer.setSelectedSequence(value);
+//            Sequencer.setSelectedSequence(value);
             break;
         default:
 			break;
