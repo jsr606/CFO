@@ -24,8 +24,6 @@
 #include "BodyseqSynth.h"
 
 IntervalTimer synthTimer;
-unsigned long timerCounter1 = 0;
-unsigned long timerCounter2 = 0;
 
 MMusic Music;
 
@@ -45,23 +43,54 @@ const float hertzTable[] = {
 #include <FrictionHertzTable.inc>	
 };
 
-
-uint8_t sequencer[128];
 uint8_t instrument[128];
 uint8_t userPresets[MAX_PRESETS][PRESET_SIZE];
-
-bool commandFlags[128];
-
 
 const uint8_t programPresets[] = {
 #include <Presets.h>
 };
 
-
-
 int64_t filterSamplesLP24dB[4];
 int64_t filterSamplesHP24dB[8];
 int64_t filterSamplesMoogLadder[4];
+
+bool samplePlaying[] = {0, 0, 0, 0, 0, 0, 0, 0};
+int samplePosition[] = {0, 0, 0, 0, 0, 0, 0, 0};
+
+const uint8_t sample0[] = {
+#include <sample_BD.inc>
+};
+const uint8_t sample1[] = {
+#include <sample_SD.inc>
+};
+const uint8_t sample2[] = {
+#include <sample_RS.inc>
+};
+const uint8_t sample3[] = {
+#include <sample_CP.inc>
+};
+const uint8_t sample4[] = {
+#include <sample_HH.inc>
+};
+const uint8_t sample5[] = {
+#include <sample_OH.inc>
+};
+const uint8_t sample6[] = {
+#include <sample_CL.inc>
+};
+const uint8_t sample7[] = {
+#include <sample_CB.inc>
+};
+int sampleLength[] =   {
+                            sizeof(sample0) / sizeof(sample0[0]),
+                            sizeof(sample1) / sizeof(sample1[0]),
+                            sizeof(sample2) / sizeof(sample2[0]),
+                            sizeof(sample3) / sizeof(sample3[0]),
+                            sizeof(sample4) / sizeof(sample4[0]),
+                            sizeof(sample5) / sizeof(sample5[0]),
+                            sizeof(sample6) / sizeof(sample6[0]),
+                            sizeof(sample7) / sizeof(sample7[0])
+                        };
 
 const int64_t filterCoefficient[] = {
 #include <filterCoefficients_1poleLP.inc>
@@ -70,17 +99,6 @@ const int64_t filterCoefficient[] = {
 const float fcMoog[] = {
 #include <filterCutoffFrequenciesMoogLadder.inc>
 };
-
-float filterCoefficientsMoogLadderFloat[8][256];
-// T = 1 / samplerate
-// [0] wd = 2 * PI() * fc
-// [1] wa = (2/T) * tan(wd*T/2)
-// [2] g = wa * (T/2)
-// [3] gg = g * g
-// [4] ggg = g * g * g
-// [5] G = g * g * g * g
-// [6] Gstage = g / (1.0 + g)
-// [7] nothing yet
 
 const int64_t filterCoefficientsMoogLadder[] = {
 #include <filterCoefficientsMoogLadder.inc>
@@ -94,30 +112,7 @@ const float semitoneTable[] = {0.25,0.2648658,0.2806155,0.29730177,0.31498027,0.
 
 const extern uint32_t portamentoTimeTable[] = {1,5,9,13,17,21,26,30,35,39,44,49,54,59,64,69,74,79,85,90,96,101,107,113,119,125,132,138,144,151,158,165,172,179,187,194,202,210,218,226,234,243,252,261,270,279,289,299,309,320,330,341,353,364,376,388,401,414,427,440,455,469,484,500,516,532,549,566,584,602,622,642,663,684,706,729,753,778,804,831,859,888,919,951,984,1019,1056,1094,1134,1176,1221,1268,1317,1370,1425,1484,1547,1614,1684,1760,1841,1929,2023,2125,2234,2354,2484,2627,2785,2959,3152,3368,3611,3886,4201,4563,4987,5487,6087,6821,7739,8918,10491,12693,15996,21500,32509,65535};
 
-void MMusic::generateFilterCoefficientsMoogLadder() {
-    
-    for(int i=0; i<256; i++) {
-        float T = 1.0f/float(SAMPLE_RATE);
-        float wd = 2.0f * PI * fcMoog[i];
-        float wa = (2.0f/T) * tan(wd*T/2.0f);
-        //    float g = tan(wd*T/2.0f);
-        float g = wa * (T/2.0f);
-        float gg = g * g;
-        float ggg = g * g * g;
-        float G = g * g * g * g;
-        float Gstage = g / (1.0 + g);
-        
-        filterCoefficientsMoogLadderFloat[0][i] = wd;
-        filterCoefficientsMoogLadderFloat[1][i] = wa;
-        filterCoefficientsMoogLadderFloat[2][i] = g;
-        filterCoefficientsMoogLadderFloat[3][i] = gg;
-        filterCoefficientsMoogLadderFloat[4][i] = ggg;
-        filterCoefficientsMoogLadderFloat[5][i] = G;
-        filterCoefficientsMoogLadderFloat[6][i] = Gstage;
-        filterCoefficientsMoogLadderFloat[7][i] = 0;
-    }
 
-}
 
 //////////////////////////////////////////////////////////
 //
@@ -126,11 +121,6 @@ void MMusic::generateFilterCoefficientsMoogLadder() {
 //////////////////////////////////////////////////////////
 
 void synth_isr(void) {
-//    if(timerCounter1 > timerCounter2) {
-//        Serial.println("timerCounter1 > timerCounter2");
-//        timerCounter2 = timerCounter1;
-//    }
-//    timerCounter1++;
 
     Music.output2T3DAC();
 //    Music.output2DAC();
@@ -138,7 +128,6 @@ void synth_isr(void) {
 	Music.envelope1();
 	Music.envelope2();
     if(Music.is12bit) Music.synthInterrupt12bitSineFM();
-//	if(Music.is12bit) Music.phaseDistortionOscillator();
 //  if(Music.is12bit) Music.synthInterrupt12bitSawFM();
 	else Music.synthInterrupt8bitFM();
 		
@@ -150,7 +139,8 @@ void synth_isr(void) {
     if(Music.highpass24dB) Music.filterHP24dB();
     if(Music.moogLadder) Music.filterMoogLadder();
     
-//    timerCounter2++;
+    Music.samplerInterrupt();
+    
 }
 
 
@@ -158,6 +148,30 @@ void MMusic::set12bit(bool b) {
 	is12bit = b;
 }
 	
+
+void MMusic::samplerInterrupt()
+{
+    for(int i=0; i<NUM_SAMPLES; i++) {
+        if(samplePlaying[i]) {
+            if(samplePosition[i] < sampleLength[i]) {
+//                sample += ((int(sample0[samplePosition[i]]) - 128) << 8);
+                samplePosition[i] = samplePosition[i] + 1;
+            } else {
+                samplePlaying[i] = false;
+                samplePosition[i] = 0;
+            }
+        }
+    }
+    sample += ((int(sample0[samplePosition[0]]) - 128) << 4);
+    sample += ((int(sample1[samplePosition[1]]) - 128) << 4);
+    sample += ((int(sample2[samplePosition[2]]) - 128) << 4);
+    sample += ((int(sample3[samplePosition[3]]) - 128) << 4);
+    sample += ((int(sample4[samplePosition[4]]) - 128) << 4);
+    sample += ((int(sample5[samplePosition[5]]) - 128) << 4);
+    sample += ((int(sample6[samplePosition[6]]) - 128) << 4);
+    sample += ((int(sample7[samplePosition[7]]) - 128) << 4);
+    
+}
 
 
 
@@ -211,12 +225,6 @@ void MMusic::synthInterrupt8bitFM ()
 	sample >>= 18;
 
 }
-
-void MMusic::samplerInterrupt()
-{
-    
-}
-
 
 
 
@@ -427,8 +435,7 @@ void MMusic::envelope2() {
 
 void MMusic::amplifier() {
 	
-	sample = (env1 * sample) >> 16;
-
+	sample = (env1 * sample) >> 20;
 }
 
 
@@ -650,10 +657,10 @@ void MMusic::init()
 		}
 	}
     
-    generateFilterCoefficientsMoogLadder();
-    for(int i=0; i<256; i++) {
-        Serial.println(filterCoefficientsMoogLadderFloat[6][i]);
-    }
+//    generateFilterCoefficientsMoogLadder();
+//    for(int i=0; i<256; i++) {
+//        Serial.println(filterCoefficientsMoogLadderFloat[6][i]);
+//    }
     
 	sampleRate = SAMPLE_RATE;
 	sample = 0;
@@ -1598,9 +1605,6 @@ void MMusic::noteOn(uint8_t note, uint8_t vel)
 	notePlayed = note;
 	frequency16bit = hertzTable[notePlayed];
 	setFrequency(frequency16bit);
-	//setFrequency1(frequency16bit);
-	//setFrequency2(frequency16bit);
-	//setFrequency3(frequency16bit);
 }
 
 
@@ -1616,9 +1620,15 @@ void MMusic::noteOn(uint8_t note)
 	notePlayed = note;
 	frequency16bit = hertzTable[notePlayed];
 	setFrequency(frequency16bit);
-	//setFrequency1(frequency16bit);
-	//setFrequency2(frequency16bit);
-	//setFrequency3(frequency16bit);
+}
+
+void MMusic::noteOnSample(uint8_t note)
+{
+    int sample = note;
+    if(sample < 0) sample = 0;
+    if(sample > NUM_SAMPLES) sample = NUM_SAMPLES - 1;
+    samplePosition[sample] = 0;
+    samplePlaying[sample] = true;
 }
 
 
@@ -2310,8 +2320,8 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			Music.setFM3Shape(value);
 			break;
 		case ENV1_ENABLE:
-//			if(value<64) Music.enableEnvelope1();
-//			else Music.disableEnvelope1();
+			if(value) Music.enableEnvelope1();
+			else Music.disableEnvelope1();
 			break;
 		case ENV1_ATTACK:
 			Music.setEnv1Attack(value);
@@ -2326,8 +2336,8 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 			Music.setEnv1Release(value);
 			break;
 		case ENV2_ENABLE:
-//			if(value<64) Music.enableEnvelope2();
-//			else Music.disableEnvelope2();
+			if(value) Music.enableEnvelope2();
+			else Music.disableEnvelope2();
 			break;
 		case ENV2_ATTACK:
 			Music.setEnv2Attack(value);

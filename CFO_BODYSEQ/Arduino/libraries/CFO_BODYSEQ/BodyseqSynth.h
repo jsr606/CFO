@@ -81,7 +81,7 @@
 #define PERIOD_MAX BIT_32
 
 // Sampler specific constants
-#define NUM_SAMPLES 16
+#define NUM_SAMPLES 8
 
 // Specify highest and lowest pitch in Hz
 #define LOW_PITCH 55
@@ -136,7 +136,7 @@
 #define MOD_OSC3 5
 
 // parameters for presets || the two parameters below should multiply to 2048.
-#define MAX_PRESETS 8
+#define MAX_PRESETS 16
 #define PRESET_SIZE 128
 
 #define BANK_U 0
@@ -376,6 +376,7 @@ public:
 	void noteOn(uint8_t note); // 0 - 127
 	void noteOff(uint8_t note); // 0 - 127
 	void noteOff();
+    void noteOnSample(uint8_t); // 0 - NUM_SAMPLES
 	float getNoteFrequency(uint8_t note); // 0 - 127
     
 	// ENVELOPE FUNCTIONS
