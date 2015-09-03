@@ -28,12 +28,12 @@ const int bodySwitch [] = {A2, A3, A4, A5, A6, A7, A8, A9};
 
 unsigned long lastPrint = millis();
 
-boolean sequenceRunning = true;
+boolean sequencerRunning = true;
 
 float maxBodyReading = 0;
-float maxBodyFadeout = 0.9999;
+float maxBodyFadeout = 0.99;
 
-float averageNoise = 0;
+float averageNoise = 0, noiseThreshold = 25;
 
 int inputFreq = 10;
 unsigned long lastInput = millis();
@@ -59,15 +59,23 @@ int bodySwitchVal [] = {0, 0, 0, 0, 0, 0, 0, 0};
 
 boolean bodySwitchesTouched = false;
 
-int mode = 0;
+int mode = 1;
 int bank = 0, preset = 16;
 
 boolean buttonState [] = {HIGH, HIGH, HIGH};
 boolean buttonAction [] = {false, false, false};
+boolean buttonsPressed = false, onlyButtonsPressed = false;
 
 int potVal1 = 0, potVal2 = 0;
 boolean pot1Moved = false, pot2Moved = false, potsMoved = false;
 int potNoise = 1;
+
+int currentArpNote = 0;
+unsigned long lastArp = millis();
+int arpNotes = 0, lastArpNote = -1;
+int arpNote[8] = { -1, -1, -1, -1, -1, -1, -1, -1};
+int arpDivider = 4;
+boolean arpActive = false;
 
 boolean debug = true;
 
@@ -98,7 +106,6 @@ void setup() {
   Sequencer.startSequence(s1);
   checkBPM();
 
-
   Serial.begin(9600);
 
   Serial.println("hello");
@@ -116,8 +123,10 @@ void setup() {
 
   startupAnimation();
 
-  sampleAverageNoise();
+  // sequencer is ON
+  digitalWrite(statusLed1, HIGH);
 
+  sampleAverageNoise();
 }
 
 void loop() {
@@ -126,75 +135,203 @@ void loop() {
   Midi.checkSerialMidi();
 
   // update sequencer
-  Sequencer.update();
-  
-  // check user input
+  Sequencer.update(); // sequencer calls function sequenceCallback whenever a new step is reached
+
+  // check user input at certain frequency (inputFreq)
   if (lastInput + inputFreq < millis()) {
     // check user input
+    readButtons();
     readPots();
     readBodyswitches();
-    readButtons();
 
-    // general navigation
-    // button 0 pushed
-    if (buttonState[0] == LOW) {
-      noteInputFromBodyswitches();
-    }
-    // button 1 pushed
-    if (buttonState[1] == LOW) {
-      eraseNotesFromBodyswitches();
-      if (pot1Moved) {
-        // change sequencer speed
-        checkBPM();
-        potsMoved = false;
-      }
-    }
-    // button 2 pushed
-    if (buttonState[2] == LOW) {
-      changeSequenceBank();
-      activeSeq = bank;
-      if (pot2Moved) {
-        changePreset();
-        potsMoved = false;        
-      }
-      if (pot1Moved) {
-        changeOctave();
-        potsMoved = false;
-      }
-    }
-    // button 0 and 2 pushed
-    if (buttonState[2] == LOW && buttonState[0] == LOW) {
-      int lowestSwitch = 0, highestSwitch = 0;
-      if (bodySwitchesTouched) {
-        for (int i = 0; i < 8; i++) {
-          if (bodySwitchVal[i] > 0) {
-            highestSwitch = i;
-          }
-          if (bodySwitchVal[7 - i] > 0) {
-            lowestSwitch = 7 - i;
-          }
+    if (!buttonsPressed && bodySwitchesTouched) {
+      arpActive = true;
+    } else {
+      arpActive = false;
+    }  
+
+    if (arpActive) {
+      // arp mode     
+      arp();
+ 
+    } else {
+      
+      // standard sequence editor
+
+      arpActive = false;
+
+      // button 0 released
+      if (buttonAction[0] == true && buttonState[0] == HIGH && onlyButtonsPressed) {
+        // start / stop sequencer
+        sequencerRunning = !sequencerRunning;
+        if (sequencerRunning) {
+          Sequencer.start();
+          digitalWrite(statusLed1, HIGH);
+        } else {
+          Sequencer.stop();
+          Serial.println("stop");
+          seqNoteDump();
+          digitalWrite(statusLed1, LOW);
         }
-        seqStart = lowestSwitch;
-        seqEnd = highestSwitch;
       }
+
+      // button 0 pushed
+      if (buttonState[0] == LOW) {
+        noteInputFromBodyswitches();
+      }
+      // button 1 pushed
+      if (buttonState[1] == LOW) {
+        eraseNotesFromBodyswitches();
+        if (pot1Moved) {
+          // change sequencer speed
+          checkBPM();
+        }
+      }
+      // button 2 pushed
+      if (buttonState[2] == LOW) {
+        changeSequenceBank();
+        activeSeq = bank;
+        if (pot2Moved) {
+          changePreset();
+        }
+        if (pot1Moved) {
+          changeOctave();
+        }
+      }
+      // button 0 and 2 pushed
+      if (buttonState[2] == LOW && buttonState[0] == LOW) {
+        int lowestSwitch = 0, highestSwitch = 0;
+        if (bodySwitchesTouched) {
+          for (int i = 0; i < 8; i++) {
+            if (bodySwitchVal[i] > 0) {
+              highestSwitch = i;
+            }
+            if (bodySwitchVal[7 - i] > 0) {
+              lowestSwitch = 7 - i;
+            }
+          }
+          seqStart = lowestSwitch;
+          seqEnd = highestSwitch;
+        }
+      }
+      lastInput = millis();
+
+      if (potsMoved && !buttonsPressed) setCutoffFromPots();
+
+      updateLEDs();
+
     }
-    lastInput = millis();
   }
 
-  if (potsMoved) setCutoffFromPots();
-  
+
+
+}
+
+void seqNoteDump() {
+  Serial.println("sequencer notes");
+  int k = 0;
+  for (int i = 0; i<8; i++) {
+    for (int j = 0; j<8; j++) {
+      if (seqNote[k] < 10 && seqNote[k] > -1) {
+        Serial.print(" ");
+      }
+      Serial.print(seqNote[k]);
+      Serial.print(", ");
+      k++;
+    }
+    Serial.println();
+  }
+}
+
+void arp () {
+
   updateLEDs();
-  
+
+  // button 2 pushed
+  if (buttonState[2] == LOW) {
+    changeSequenceBank();
+    activeSeq = bank;
+    if (pot2Moved) {
+      changePreset();
+    }
+    if (pot1Moved) {
+      changeOctave();
+    }
+  }
+
+  // do the arp yo
+
+  arpNotes = 0;
+
+  Music.setCutoff((analogRead(pot1)) * 128);
+
+  for (int i = 0; i < 8; i++) {
+    if (bodySwitchVal[i] > 0) {
+
+      digitalWrite(seqLed[i], HIGH);
+      int oct = map(bodySwitchVal[i], 0, 127, -1, 2);
+
+      arpNote[arpNotes] = baseNote + activeScale[i] + oct * 12;
+      arpNotes++;
+
+    } else {
+      digitalWrite(seqLed[i], LOW);
+    }
+  }
+
+  if (arpNotes == 0) {
+    lastArpNote = -1;
+  }
+
+
+  if (arpNotes == 1) {
+    if (arpNote[0] != lastArpNote) {
+      if (lastArp + stepTime < millis()) {
+        Music.noteOn(arpNote[0]);
+        lastArpNote = arpNote[0];
+        lastArp = millis();
+      }
+    }
+  }
+
+  if (arpNotes > 1) {
+
+    if (lastArp + stepTime / arpDivider < millis() ) {
+      //Serial.print("doing the arp ");
+
+      Music.noteOn(arpNote[currentArpNote]);
+      //Serial.println(arpNote[currentArpNote]);
+      lastArp = millis();
+      currentArpNote++;
+
+      if (currentArpNote > arpNotes - 1) currentArpNote = 0;
+
+      arpDivider = map(analogRead(pot2), 0, 1023, 1, 6);
+
+    }
+  }
+
 }
 
 void sampleAverageNoise() {
-  Serial.print("sampling average noise levels: ");
-
+  Serial.println("sampling average noise levels: ");
+  int samples = 20;
   for (int i = 0; i < 8; i++) {
-    pinMode(seqLed[i], OUTPUT);
-    averageNoise += analogRead(bodySwitch[i]);
+    int reading = 0;
+    for (int j = 0; j < samples; j++) {
+      reading += analogRead(bodySwitch[i]);
+      Serial.print(reading);
+      Serial.print("\t");
+    }
+    reading = reading / samples;
+
+    Serial.print("noise level on bodyswitch[");
+    Serial.print(i);
+    Serial.print("] is ");
+    Serial.println(reading);
+    averageNoise += reading;
   }
-  averageNoise = averageNoise / 8 + 3;
+  averageNoise = averageNoise / 8 + noiseThreshold;
   Serial.println(averageNoise);
 }
 
@@ -213,18 +350,18 @@ void updateLEDs() {
       digitalWrite(seqLed[i], LOW);
     }
   }
-  
+
   // blink ON to show sequencer progression
   if (lastStep + blinkTime < millis()) {
     digitalWrite(seqLed[seqStep], HIGH);
   }
-  
+
   // blink OFF to show sequencer progression
-  if (lastStep + stepTime - blinkTime/2 < millis()) {
+  if (lastStep + stepTime - blinkTime / 2 < millis()) {
     digitalWrite(seqLed[seqStep], LOW);
   }
-  
-  
+
+
 }
 
 void newActiveScale (int length) {
@@ -287,6 +424,7 @@ void readPots() {
     potVal1 = newPotVal1;
     pot1Moved = true;
     potsMoved = true;
+    onlyButtonsPressed = false;
   }
   else {
     pot1Moved = false;
@@ -295,6 +433,7 @@ void readPots() {
     potVal2 = newPotVal2;
     pot2Moved = true;
     potsMoved = true;
+    onlyButtonsPressed = false;
   }
   else {
     pot2Moved = false;
@@ -360,21 +499,21 @@ void changePreset() {
 
 void sequenceCallback() {
   // this is a callback function, called every time the sequencer steps
-  
+
   // calculate how many millis have passed since last step
   unsigned long thisStep = millis();
   stepTime = thisStep - lastStep;
   lastStep = thisStep;
   // and calculate sequencer blink time
   blinkTime = max(stepTime >> 2, 100);
-  
+
   // updater sequencer notes
   seqStep++;
   if (seqStep > seqEnd) seqStep = seqStart;
 
   int note = activeSeq * 8 + seqStep;
 
-  if (seqNote[note] != -1) {
+  if (seqNote[note] != -1 && arpActive == false) {
     Music.noteOn(baseNote + seqNote[note]);
   }
 
@@ -405,13 +544,14 @@ void readBodyswitches() {
   bodySwitchesTouched = false;
   for (int i = 0; i < 8; i++) {
 
-    int reading = constrain(analogRead (bodySwitch[i]), 0, 127);
+    int reading = analogRead (bodySwitch[i]);
     maxBodyReading = max(maxBodyReading, reading);
 
     if (reading > averageNoise) { // averageNoise is sampled on startup
       int midiVal = map (reading, averageNoise, maxBodyReading, 0, 127);
       bodySwitchVal[i] = constrain(midiVal, 0, 127);
       bodySwitchesTouched = true;
+      onlyButtonsPressed = false;
     }
     else {
       bodySwitchVal[i] = 0;
@@ -473,6 +613,7 @@ void startupAnimation() {
 
 void readButtons() {
   // buttons are active low
+  buttonsPressed = false;
 
   for (int i = 0; i < 3; i++) {
     if (digitalRead(buttonPin[i]) == HIGH) {
@@ -490,6 +631,7 @@ void readButtons() {
     }
 
     if (digitalRead(buttonPin[i]) == LOW) {
+      buttonsPressed = true;
       if (buttonState[i] == HIGH) {
         // button has just been pushed
         buttonAction[i] = true;
@@ -497,6 +639,7 @@ void readButtons() {
         if (debug) Serial.print(i);
         if (debug) Serial.println(" has just been pushed");
         buttonState[i] = LOW;
+        onlyButtonsPressed = true;
       } else {
         // button was already psuhed, no action here
         buttonAction[i] = false;
