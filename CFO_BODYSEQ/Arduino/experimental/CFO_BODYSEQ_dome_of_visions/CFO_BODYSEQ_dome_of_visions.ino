@@ -97,7 +97,7 @@ void setup() {
   Music.init();
   Music.enableEnvelope1();
   Music.enableEnvelope2();
-  Music.getPreset(13);
+  Music.getPreset(16);
   Music.setEnv1Decay(36);
   Music.setEnv1Sustain(0);
 
@@ -236,7 +236,10 @@ void loop() {
 
       if (potsMoved && !buttonsPressed) setCutoffFromPots();
 
-      updateLEDs();
+      // online update sequencer LEDs when arp is not active
+      if (!arpActive) {
+        updateLEDs();
+      }
 
     }
   }
@@ -273,7 +276,7 @@ void seqNoteDump() {
 
 void arp () {
 
-  updateLEDs();
+  //updateLEDs();
 
   // button 2 pushed
   if (buttonState[2] == LOW) {
