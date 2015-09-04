@@ -72,9 +72,10 @@ void setup() {
 
   // We initialise the sound engine by calling Music.init() which outputs a tone
   Music.init();
+//  Music.setSampler(true);
   Music.enableEnvelope1();
   Music.enableEnvelope2();
-  Music.getPreset(13);
+  Music.getPreset(21);
   Music.setEnv1Decay(36);
   Music.setEnv1Sustain(0);
 

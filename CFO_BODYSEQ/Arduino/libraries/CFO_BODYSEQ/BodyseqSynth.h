@@ -81,7 +81,7 @@
 #define PERIOD_MAX BIT_32
 
 // Sampler specific constants
-#define NUM_SAMPLES 8
+#define NUM_SAMPLES 16
 
 // Specify highest and lowest pitch in Hz
 #define LOW_PITCH 55
@@ -294,6 +294,11 @@ public:
 	void sendToDAC(); // sending both sound and cutoff
 	void output2DAC(); // sending only sound
     void output2T3DAC();    // sending sample to Teensy3.1 DAC on pin 14
+    
+    void setSampler(bool s);
+    bool isSampler();
+    void setSynth(bool s);
+    bool isSynth();
 	
 	// FILTER FUNCTIONS
 	void filter();
@@ -407,16 +412,11 @@ public:
     int32_t oscil1;
 	int32_t oscil2;
 	int32_t oscil3;
-    int32_t lastOscil1;
-	int32_t lastOscil2;
-	int32_t lastOscil3;
-	int64_t integralOfOscil1;
-	int64_t integralOfOscil2;
-	int64_t integralOfOscil3;
-	int64_t derivativeOfOscil1;
-	int64_t derivativeOfOscil2;
-	int64_t derivativeOfOscil3;
+
+    // final sample that goes to the DAC
+    volatile int64_t sample;
     
+
 
 	
 private:
@@ -428,19 +428,10 @@ private:
 	uint16_t waveForm2;
 	uint16_t waveForm3;
 	uint16_t waveForm;
-    uint16_t waveform;
-    int64_t waveformVector[5];
-    uint16_t phaseDistortion1;
-    uint16_t phaseDistortion2;
-    uint16_t phaseDistortion3;
-    uint32_t waveformPosition1;
-    uint32_t waveformPosition2;
-    uint32_t waveformPosition3;
-//    int16_t waveformVector[8];
-	bool sine;
-	bool saw;
-	bool square;
-    	
+//	bool sine;
+//	bool saw;
+//	bool square;
+    
 	// FREQUENCY VARIABLES
 	uint16_t frequency16bit;
 	float frequency;
@@ -600,9 +591,6 @@ private:
 	// NOTE VARIABLE
 	uint8_t notePlayed;
 	
-	// final sample that goes to the DAC
-	volatile int64_t sample;
-    
 	
 	// the two bytes that go to the DAC over SPI for VCF and VCA
 	volatile uint8_t dacSPIA0;
@@ -611,6 +599,9 @@ private:
 	volatile uint8_t dacSPIB1;
 	volatile uint8_t dacSetA;
 	volatile uint8_t dacSetB;
+    
+    bool sampler;
+    bool synth;
     
 };
 

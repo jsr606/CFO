@@ -34,6 +34,7 @@ void setup() {
 
   // We initialise the sound engine by calling Music.init() which outputs a tone
   Music.init();
+  Music.setSampler(true);
 
   Music.enableEnvelope1();
   Music.enableEnvelope2();

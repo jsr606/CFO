@@ -25,7 +25,7 @@ void setup() {
   
   Music.enableEnvelope1();
   Music.enableEnvelope2();
-  Music.getPreset(13);
+  Music.getPreset(21);
   
 // These guys just have to be here...
   usbMIDI.setHandleNoteOff(OnNoteOff);

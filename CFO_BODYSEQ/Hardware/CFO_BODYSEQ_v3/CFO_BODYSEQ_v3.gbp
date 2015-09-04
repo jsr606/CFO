@@ -1,0 +1,11 @@
+%FSLAX33Y33*%
+%MOMM*%
+%AMRect-W5000000-H5000000-RO1.000*
+21,1,5.,5.,0.,0.,179*%
+%ADD10Rect-W5000000-H5000000-RO1.000*%
+D10*
+%LNbottom paste_traces*%
+%LNbottom paste component 4c04787e1f5174be*%
+G01*
+X96012Y89154D03*
+M02*

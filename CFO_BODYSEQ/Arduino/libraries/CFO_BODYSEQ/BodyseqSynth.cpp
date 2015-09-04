@@ -54,32 +54,64 @@ int64_t filterSamplesLP24dB[4];
 int64_t filterSamplesHP24dB[8];
 int64_t filterSamplesMoogLadder[4];
 
-bool samplePlaying[] = {0, 0, 0, 0, 0, 0, 0, 0};
-int samplePosition[] = {0, 0, 0, 0, 0, 0, 0, 0};
+bool samplePlaying[NUM_SAMPLES];
+int samplePosition[NUM_SAMPLES];
 
 const uint8_t sample0[] = {
-#include <sample_BD.inc>
+//#include <sample_lachute.inc>
+#include <sample_BD2.inc>
 };
 const uint8_t sample1[] = {
+//#include <sample_silence.inc>
 #include <sample_SD.inc>
 };
 const uint8_t sample2[] = {
+//#include <sample_silence.inc>
 #include <sample_RS.inc>
 };
 const uint8_t sample3[] = {
+//#include <sample_silence.inc>
 #include <sample_CP.inc>
 };
 const uint8_t sample4[] = {
+//#include <sample_silence.inc>
 #include <sample_HH.inc>
 };
 const uint8_t sample5[] = {
+//#include <sample_silence.inc>
 #include <sample_OH.inc>
 };
 const uint8_t sample6[] = {
+//#include <sample_silence.inc>
 #include <sample_CL.inc>
 };
 const uint8_t sample7[] = {
+//#include <sample_silence.inc>
 #include <sample_CB.inc>
+};
+const uint8_t sample8[] = {
+#include <sample_silence.inc>
+};
+const uint8_t sample9[] = {
+#include <sample_silence.inc>
+};
+const uint8_t sample10[] = {
+#include <sample_silence.inc>
+};
+const uint8_t sample11[] = {
+#include <sample_silence.inc>
+};
+const uint8_t sample12[] = {
+#include <sample_silence.inc>
+};
+const uint8_t sample13[] = {
+#include <sample_silence.inc>
+};
+const uint8_t sample14[] = {
+#include <sample_silence.inc>
+};
+const uint8_t sample15[] = {
+#include <sample_silence.inc>
 };
 int sampleLength[] =   {
                             sizeof(sample0) / sizeof(sample0[0]),
@@ -89,7 +121,15 @@ int sampleLength[] =   {
                             sizeof(sample4) / sizeof(sample4[0]),
                             sizeof(sample5) / sizeof(sample5[0]),
                             sizeof(sample6) / sizeof(sample6[0]),
-                            sizeof(sample7) / sizeof(sample7[0])
+                            sizeof(sample7) / sizeof(sample7[0]),
+                            sizeof(sample8) / sizeof(sample8[0]),
+                            sizeof(sample9) / sizeof(sample9[0]),
+                            sizeof(sample10) / sizeof(sample10[0]),
+                            sizeof(sample11) / sizeof(sample11[0]),
+                            sizeof(sample12) / sizeof(sample12[0]),
+                            sizeof(sample13) / sizeof(sample13[0]),
+                            sizeof(sample14) / sizeof(sample14[0]),
+                            sizeof(sample15) / sizeof(sample15[0])
                         };
 
 const int64_t filterCoefficient[] = {
@@ -123,24 +163,37 @@ const extern uint32_t portamentoTimeTable[] = {1,5,9,13,17,21,26,30,35,39,44,49,
 void synth_isr(void) {
 
     Music.output2T3DAC();
-//    Music.output2DAC();
-	
-	Music.envelope1();
-	Music.envelope2();
-    if(Music.is12bit) Music.synthInterrupt12bitSineFM();
-//  if(Music.is12bit) Music.synthInterrupt12bitSawFM();
-	else Music.synthInterrupt8bitFM();
-		
-	Music.amplifier();
+    //    Music.output2DAC();
 
-	if(Music.lowpass) Music.filterLP6dB();
-	if(Music.highpass) Music.filterHP6dB();
-    if(Music.lowpass24dB) Music.filterLP24dB();
-    if(Music.highpass24dB) Music.filterHP24dB();
-    if(Music.moogLadder) Music.filterMoogLadder();
+    if(Music.isSynth()) {
+        Music.envelope1();
+        Music.envelope2();
+        if(Music.is12bit) Music.synthInterrupt12bitSineFM();
+    //  if(Music.is12bit) Music.synthInterrupt12bitSawFM();
+        else Music.synthInterrupt8bitFM();
+        
+        Music.amplifier();
+        
+        if(Music.lowpass) Music.filterLP6dB();
+        if(Music.highpass) Music.filterHP6dB();
+        if(Music.lowpass24dB) Music.filterLP24dB();
+        if(Music.highpass24dB) Music.filterHP24dB();
+        if(Music.moogLadder) Music.filterMoogLadder();
+        
+    }
+    if(Music.isSampler()) {
+        if(!Music.isSynth()) {
+            Music.sample = 0;
+        }
+        Music.samplerInterrupt();
+    }
     
-    Music.samplerInterrupt();
     
+    if(Music.isSynth() && !Music.isSampler());
+    else if(!Music.isSynth() && Music.isSampler()) Music.sample >>= 0;
+    else Music.sample >>= 1;
+
+
 }
 
 
@@ -151,26 +204,32 @@ void MMusic::set12bit(bool b) {
 
 void MMusic::samplerInterrupt()
 {
+    sample += ((int(sample0[samplePosition[0]]) - 128) << 8);
+    sample += ((int(sample1[samplePosition[1]]) - 128) << 8);
+    sample += ((int(sample2[samplePosition[2]]) - 128) << 8);
+    sample += ((int(sample3[samplePosition[3]]) - 128) << 8);
+    sample += ((int(sample4[samplePosition[4]]) - 128) << 8);
+    sample += ((int(sample5[samplePosition[5]]) - 128) << 8);
+    sample += ((int(sample6[samplePosition[6]]) - 128) << 8);
+    sample += ((int(sample7[samplePosition[7]]) - 128) << 8);
+    sample += ((int(sample8[samplePosition[8]]) - 128) << 8);
+    sample += ((int(sample9[samplePosition[9]]) - 128) << 8);
+    sample += ((int(sample10[samplePosition[10]]) - 128) << 8);
+    sample += ((int(sample11[samplePosition[11]]) - 128) << 8);
+    sample += ((int(sample12[samplePosition[12]]) - 128) << 8);
+    sample += ((int(sample13[samplePosition[13]]) - 128) << 8);
+    sample += ((int(sample14[samplePosition[14]]) - 128) << 8);
+    sample += ((int(sample15[samplePosition[15]]) - 128) << 8);
+
     for(int i=0; i<NUM_SAMPLES; i++) {
         if(samplePlaying[i]) {
-            if(samplePosition[i] < sampleLength[i]) {
-//                sample += ((int(sample0[samplePosition[i]]) - 128) << 8);
-                samplePosition[i] = samplePosition[i] + 1;
-            } else {
+            samplePosition[i]++;
+            if(samplePosition[i] >= sampleLength[i]) {
                 samplePlaying[i] = false;
                 samplePosition[i] = 0;
             }
         }
     }
-    sample += ((int(sample0[samplePosition[0]]) - 128) << 4);
-    sample += ((int(sample1[samplePosition[1]]) - 128) << 4);
-    sample += ((int(sample2[samplePosition[2]]) - 128) << 4);
-    sample += ((int(sample3[samplePosition[3]]) - 128) << 4);
-    sample += ((int(sample4[samplePosition[4]]) - 128) << 4);
-    sample += ((int(sample5[samplePosition[5]]) - 128) << 4);
-    sample += ((int(sample6[samplePosition[6]]) - 128) << 4);
-    sample += ((int(sample7[samplePosition[7]]) - 128) << 4);
-    
 }
 
 
@@ -434,9 +493,31 @@ void MMusic::envelope2() {
 
 
 void MMusic::amplifier() {
-	
-	sample = (env1 * sample) >> 20;
+    
+    sample = (env1 * sample) >> 16;
+    
 }
+
+
+void MMusic::setSampler(bool s) {
+    sampler = s;
+}
+
+
+bool MMusic::isSampler() {
+    return sampler;
+}
+
+
+void MMusic::setSynth(bool s) {
+    synth = s;
+}
+
+
+bool MMusic::isSynth() {
+    return synth;
+}
+
 
 
 /////////////////////////////////////////////////////////
@@ -649,6 +730,29 @@ void MMusic::init()
 //    pinMode(MUX_B, OUTPUT);
 
     Midi.init();
+    
+    setSynth(true);
+    setSampler(false);
+//    delay(2000);
+//    
+//    Serial.print("Sample1 is ");
+//    Serial.print(sizeof(sample0));
+//    Serial.println(" kbytes.");
+//    Serial.print("Size of array is ");
+//    Serial.println(sizeof(sample0) / sizeof(sample0[0]));
+//    Serial.println(sizeof(sample1) / sizeof(sample1[0]));
+//    Serial.println(sizeof(sample2) / sizeof(sample2[0]));
+//    Serial.println(sizeof(sample3) / sizeof(sample3[0]));
+//    Serial.println(sizeof(sample4) / sizeof(sample4[0]));
+//    Serial.println(sizeof(sample5) / sizeof(sample5[0]));
+//    Serial.println(sizeof(sample6) / sizeof(sample6[0]));
+//    Serial.println(sizeof(sample7) / sizeof(sample7[0]));
+
+    
+    for(int i=0; i < NUM_SAMPLES; i++) {
+        samplePlaying[i] = 0;
+        samplePosition[i] = 0;
+    }
 	
 	for(uint8_t i=0; i<128; i++) {
 		instrument[i] = 0;

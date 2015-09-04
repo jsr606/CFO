@@ -82,6 +82,7 @@ int keys;
 
 void setup() {
   Music.init();
+  Music.setSampler(true);
   Music.enableEnvelope1();
   Music.enableEnvelope2();
   Music.getPreset(21);
@@ -112,10 +113,10 @@ void loop() {
         playTrack();
         break;
       case 1:
-        selectNote();
+        selectSteps();
         break;
       case 2:
-        selectStep();
+        selectInstrument();
         break;
       case 3: // nothing
         break;
@@ -145,7 +146,7 @@ void playTrack() {
   }
 }
 
-void selectNote() {
+void selectSteps() {
   noteSelected = notes[stepSelected + 8 * trackSelected];
   oct = octave[stepSelected + 8 * trackSelected];
   if(keyChange) {
@@ -165,7 +166,7 @@ void selectNote() {
   }
 }
 
-void selectStep() {
+void selectInstrument() {
   if(keyChange) {
     Serial.println("SELECT STEP");
     for(int i = 0; i < NUM_KEYS; i++) {
