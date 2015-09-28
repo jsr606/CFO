@@ -24,31 +24,37 @@ void readButtons() {
 // KEYS //
 //////////
 void readKeys() {
+  int keyr = 0;
+  int keyv = 0;
   for (int i = 0; i < NUM_KEYS; i++) {
-//    int i = keyIndex++;
-//    if(keyIndex >= NUM_KEYS) keyIndex = 0;
     keyNow = millis();
     if((keyNow - keyTime[i]) > debounceTime) {
       keyRead = analogRead(keyPin[i]);
-//      if(i==4) Serial.println(keyRead);
       if(keyRead > KEY_THRESHOLD) {
         keyValue = 1;
       } else {
         keyValue = 0;
       }
+      if(i == 0) {
+        keyr = keyRead;
+        keyv = keyValue;
+      }
 //      keyValue = (keyRead > KEY_THRESHOLD) ? 1 : 0 ;
-      if(keyValue != keyState[i]) {
+      if(keyState[i] != keyValue) {
         keyState[i] = keyValue;
         keyChange |= 1<<i;
         keyTime[i] = keyNow;
       }
-      if(keyState[i]) {
-        keys |= 1<<i;
-      } else {
-        keys &= ~(1<<i);
-      }
     }
   }
+  for (int i = 0; i < NUM_KEYS; i++) {
+      if(keyState[i] == 1) {
+        keys |= (1<<i);
+      } else if(keyState[i] == 0) {
+        keys &= ~(1<<i);
+      }
+  }
+  Serial.printf("keyTime[0]=%10ld, keyr=%i, keyv=%i - keyState is %i%i%i%i%i%i%i%i, keys is %X \n", keyTime[0], keyr, keyv, keyState[0], keyState[1], keyState[2], keyState[3], keyState[4], keyState[5], keyState[6], keyState[7], keys);
 }
 
 
@@ -98,31 +104,36 @@ void initInterface() {
 
 
 void updateLEDs() {
-    switch(machineState) {
-      case 0:
-        leds = 0 | (1 << trackSelected);
-        break;
-      case 1:
-        leds = 0 | (1 << noteSelected);
-        leds = leds | (octave[stepSelected + 8 * trackSelected] << 7);
-        break;
-      case 2:
-        leds = 0 | (1 << stepSelected);
-        break;
-      case 3: // nothing
-        break;
-      case 4:
-        leds = 0 | (1 << trackSelected);
-        break;
-      case 5: // nothing
-        break;
-      case 6: // nothing
-        break;
-      case 7: // nothing
-        break;
-      default:
-        break;
-    }
+  int t = trackSelected;
+  int s = sampleSelected;
+  switch(machineState) {
+    case 0:
+      leds = 0 | (1 << trackPlaying);
+      break;
+    case 1:
+      leds = 0;
+      for(int i=0; i<NUM_STEPS; i++) {
+        leds = leds | (sample[t][s][i] << i);
+      }
+      break;
+    case 2:
+      leds = 0 | (1 << sampleSelected);
+      break;
+    case 3: // nothing
+      break;
+    case 4:
+      leds = 0 | (1 << trackSelected);
+      break;
+    case 5: // nothing
+      break;
+    case 6: // nothing
+      break;
+    case 7: // nothing
+      break;
+    default:
+      break;
+  }
+
   for (int i = 0; i<8; i++) {
     digitalWrite(seqLed[i], leds & (1 << i));
   }

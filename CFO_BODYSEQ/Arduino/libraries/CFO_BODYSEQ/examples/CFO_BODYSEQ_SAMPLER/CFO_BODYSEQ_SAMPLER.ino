@@ -16,45 +16,35 @@
 
 #define NUM_TRACKS 8
 #define NUM_STEPS 8
+#define NUM_SAMPLES 8
 #define NUM_LEDS 8
 
 int mode;
-
-int track[8];
-int debounceTime = 40;
+unsigned long debounceTime = 40;
 
 int _bpm;
 
-const int scale[] = {0, 2, 3, 5, 7, 8, 10, 12};
-//const int octave[] = {-24, -12, 0, 12, 24};
-int rootNote = 36;
-
 int trackPlaying = 0 ;
 int trackSelected = 0;
+int sampleSelected = 0;
 int stepSelected = 0;
-int noteSelected = 0;
-int oct = 0;
 
-int notes[64];
-int octave[64];
-int noteValues[8];
+int s1;
+int indx1 = 0;
+int sample[NUM_TRACKS][NUM_SAMPLES][NUM_STEPS];
 
 int leds;
-int note;
 
-//int var = 0;
-//const int pot1 = A0, pot2 = A1;
 
 // old stuff
 const int seqLed[] = {3,4,5,6,7,8,9,10};
 const int statusLed1 = 13;
 //boolean debug = true;
 
-
 /////////////
 // BUTTONS //
 /////////////
-#define NUM_BUTTONS 8
+#define NUM_BUTTONS 3
 const int buttonPin [] = {11,12,2};
 int buttonIndex = 0;
 int buttonRead = 0;
@@ -83,9 +73,7 @@ int keys;
 void setup() {
   Music.init();
   Music.setSampler(true);
-  Music.enableEnvelope1();
-  Music.enableEnvelope2();
-  Music.getPreset(21);
+  Music.setSynth(false);
   usbMIDI.setHandleNoteOff(OnNoteOff);
   usbMIDI.setHandleNoteOn(OnNoteOn);
   usbMIDI.setHandleControlChange(OnControlChange);
@@ -93,8 +81,19 @@ void setup() {
   analogReadAveraging(32);
   delay(2000);
   Sequencer.init(120);
-  setupSequences();
-  initInterface();  
+//  Sequencer.setInternalClock(true);  
+  s1 = Sequencer.newSequence(NOTE_16, &s1cb);
+  initInterface();
+  Sequencer.startSequence(s1);
+
+
+  for(int i=0; i<NUM_TRACKS; i++) {
+    for(int j=0; j<NUM_SAMPLES; j++) {
+      for(int k=0; k<NUM_STEPS; k++) {
+        sample[i][j][k] = 0;
+      }
+    }
+  }
 }
 
 
@@ -105,7 +104,13 @@ void loop() {
   readButtons();
   readKeys();
   checkBPM();
-  Music.setCutoffModAmount((analogRead(A1))*64);
+//    Serial.print("Playing Track: ");
+//    Serial.println(trackPlaying);
+//    Serial.print("Selected Sample: ");
+//    Serial.println(sampleSelected);
+//    Serial.print("Selected Track: ");
+//    Serial.println(trackSelected);    
+
 
   //  if(buttonChange || keyChange) {
     switch(machineState) {
@@ -113,10 +118,10 @@ void loop() {
         playTrack();
         break;
       case 1:
-        selectSteps();
+        selectStep();
         break;
       case 2:
-        selectInstrument();
+        selectSample();
         break;
       case 3: // nothing
         break;
@@ -139,42 +144,41 @@ void loop() {
   
   
 void playTrack() {
-  if(keyChange) {
+  if(keyChange && keys) {
     Serial.println("PLAY TRACK");
-  // code here
+    for(int i = 0; i < NUM_KEYS; i++) {
+      if(keys & (1 << i)) {
+        trackPlaying = i;
+        // Serial.print("Playing Track: ");
+        // Serial.println(trackPlaying);
+      }
+    }
   keyChange = 0;
   }
 }
 
-void selectSteps() {
-  noteSelected = notes[stepSelected + 8 * trackSelected];
-  oct = octave[stepSelected + 8 * trackSelected];
-  if(keyChange) {
-    for(int i = 0; i < NUM_KEYS-1; i++) {
-      if(keys & (1 << i)) noteSelected = i;
-      notes[stepSelected + 8 * trackSelected] = noteSelected;
-    }
-    if(keys & (1 << 7)) {
-      oct ^= 1;
-      octave[stepSelected + 8 * trackSelected] = oct;
-    }
-    for(int i = 0; i < NUM_STEPS; i++) {
-      noteValues[i] = rootNote + scale[notes[8 * trackSelected + i]] + octave[i + 8 * trackSelected] * 12;
-      Sequencer.insertNotes(track[trackSelected], noteValues, 8, 0);
-    }        
-    keyChange = 0;    
-  }
-}
-
-void selectInstrument() {
+void selectStep() {
   if(keyChange) {
     Serial.println("SELECT STEP");
     for(int i = 0; i < NUM_KEYS; i++) {
-  // code here
       if(keys & (1 << i)) {
         stepSelected = i;
-        Serial.print("Step selected: ");
-        Serial.println(stepSelected);
+        sample[trackSelected][sampleSelected][stepSelected] ^= 1;
+      }
+    }
+    keyChange = 0;
+  }
+}
+
+
+void selectSample() {
+  if(keyChange) {
+    Serial.println("SELECT SAMPLE");
+    for(int i = 0; i < NUM_KEYS; i++) {
+      if(keys & (1 << i)) {
+        sampleSelected = i;
+        // Serial.print("Selected Sample: ");
+        // Serial.println(sampleSelected);    
       }
     }
     keyChange = 0;
@@ -182,54 +186,23 @@ void selectInstrument() {
 }
 
 void selectTrack() {
-//  if(keys > 0) {
   if(keyChange) {
     Serial.println("SELECT TRACK");
     for(int i = 0; i < NUM_KEYS; i++) {
-//      Serial.print("Rechecking sequence on position ");
-//      Serial.print(i);
-//      Serial.print(". It is set to sequence index ");
-//      Serial.println(track[i]);
-      Sequencer.setInternal(track[i], false);
       if(keys & (1 << i)) {
         trackSelected = i;
-        Serial.print("trackSelected shows ");
-        Serial.print(trackSelected);
-        Serial.print(" - Track selected: ");
-        Serial.println(track[trackSelected]);
+        // Serial.print("Selected Track: ");
+        // Serial.println(trackSelected);    
       }
-      Sequencer.setInternal(track[trackSelected], true);
     }
     keyChange = 0;
   }
-  // code here
 }
 
-
-void setupSequences() {
-  for(int i = 0; i < NUM_TRACKS; i++) {
-    for(int j = 0; j < NUM_STEPS; j++) {
-      notes[8*i + j] = j;
-    }
-    track[i] = Sequencer.newSequence(NOTE_16, 8, LOOP);
-    Serial.print("Track created for sequence ");
-    Serial.print(track[i]);
-    Serial.print(" on position ");
-    Serial.println(i);
-    Sequencer.startSequence(track[i]);
-    for(int j = 0; j < NUM_STEPS; j++) {
-      noteValues[j] = rootNote + scale[notes[8 * i + j]] + octave[8 * i + j] * 12;
-    }
-    Sequencer.insertNotes(track[i], noteValues, 8, 0);
-    Sequencer.setInternal(track[i], true);
-    Sequencer.setExternal(track[i], false);
-    Serial.print("Internal set to ");
-    Serial.println(Sequencer.getInternal(track[i]));
+void s1cb() {
+  for(int i=0; i<NUM_SAMPLES; i++) {
+    if(sample[trackPlaying][i][indx1]) Music.noteOnSample(i);
   }
-  for(int i = 0; i < NUM_TRACKS; i++) {
-    Serial.print("Rechecking sequence on position ");
-    Serial.print(i);
-    Serial.print(" - set to sequence index ");
-    Serial.println(track[i]);
-  }
+  indx1++;
+  if(indx1 >= NUM_STEPS) indx1 = 0;
 }

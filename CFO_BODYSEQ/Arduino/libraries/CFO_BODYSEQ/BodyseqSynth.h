@@ -81,7 +81,7 @@
 #define PERIOD_MAX BIT_32
 
 // Sampler specific constants
-#define NUM_SAMPLES 16
+#define NUM_SAMPLES 8
 
 // Specify highest and lowest pitch in Hz
 #define LOW_PITCH 55

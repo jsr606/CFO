@@ -89,30 +89,30 @@ const uint8_t sample7[] = {
 //#include <sample_silence.inc>
 #include <sample_CB.inc>
 };
-const uint8_t sample8[] = {
-#include <sample_silence.inc>
-};
-const uint8_t sample9[] = {
-#include <sample_silence.inc>
-};
-const uint8_t sample10[] = {
-#include <sample_silence.inc>
-};
-const uint8_t sample11[] = {
-#include <sample_silence.inc>
-};
-const uint8_t sample12[] = {
-#include <sample_silence.inc>
-};
-const uint8_t sample13[] = {
-#include <sample_silence.inc>
-};
-const uint8_t sample14[] = {
-#include <sample_silence.inc>
-};
-const uint8_t sample15[] = {
-#include <sample_silence.inc>
-};
+// const uint8_t sample8[] = {
+// #include <sample_silence.inc>
+// };
+// const uint8_t sample9[] = {
+// #include <sample_silence.inc>
+// };
+// const uint8_t sample10[] = {
+// #include <sample_silence.inc>
+// };
+// const uint8_t sample11[] = {
+// #include <sample_silence.inc>
+// };
+// const uint8_t sample12[] = {
+// #include <sample_silence.inc>
+// };
+// const uint8_t sample13[] = {
+// #include <sample_silence.inc>
+// };
+// const uint8_t sample14[] = {
+// #include <sample_silence.inc>
+// };
+// const uint8_t sample15[] = {
+// #include <sample_silence.inc>
+// };
 int sampleLength[] =   {
                             sizeof(sample0) / sizeof(sample0[0]),
                             sizeof(sample1) / sizeof(sample1[0]),
@@ -121,15 +121,15 @@ int sampleLength[] =   {
                             sizeof(sample4) / sizeof(sample4[0]),
                             sizeof(sample5) / sizeof(sample5[0]),
                             sizeof(sample6) / sizeof(sample6[0]),
-                            sizeof(sample7) / sizeof(sample7[0]),
-                            sizeof(sample8) / sizeof(sample8[0]),
-                            sizeof(sample9) / sizeof(sample9[0]),
-                            sizeof(sample10) / sizeof(sample10[0]),
-                            sizeof(sample11) / sizeof(sample11[0]),
-                            sizeof(sample12) / sizeof(sample12[0]),
-                            sizeof(sample13) / sizeof(sample13[0]),
-                            sizeof(sample14) / sizeof(sample14[0]),
-                            sizeof(sample15) / sizeof(sample15[0])
+                            sizeof(sample7) / sizeof(sample7[0])
+                            // sizeof(sample8) / sizeof(sample8[0]),
+                            // sizeof(sample9) / sizeof(sample9[0]),
+                            // sizeof(sample10) / sizeof(sample10[0]),
+                            // sizeof(sample11) / sizeof(sample11[0]),
+                            // sizeof(sample12) / sizeof(sample12[0]),
+                            // sizeof(sample13) / sizeof(sample13[0]),
+                            // sizeof(sample14) / sizeof(sample14[0]),
+                            // sizeof(sample15) / sizeof(sample15[0])
                         };
 
 const int64_t filterCoefficient[] = {
@@ -212,14 +212,14 @@ void MMusic::samplerInterrupt()
     sample += ((int(sample5[samplePosition[5]]) - 128) << 8);
     sample += ((int(sample6[samplePosition[6]]) - 128) << 8);
     sample += ((int(sample7[samplePosition[7]]) - 128) << 8);
-    sample += ((int(sample8[samplePosition[8]]) - 128) << 8);
-    sample += ((int(sample9[samplePosition[9]]) - 128) << 8);
-    sample += ((int(sample10[samplePosition[10]]) - 128) << 8);
-    sample += ((int(sample11[samplePosition[11]]) - 128) << 8);
-    sample += ((int(sample12[samplePosition[12]]) - 128) << 8);
-    sample += ((int(sample13[samplePosition[13]]) - 128) << 8);
-    sample += ((int(sample14[samplePosition[14]]) - 128) << 8);
-    sample += ((int(sample15[samplePosition[15]]) - 128) << 8);
+    // sample += ((int(sample8[samplePosition[8]]) - 128) << 8);
+    // sample += ((int(sample9[samplePosition[9]]) - 128) << 8);
+    // sample += ((int(sample10[samplePosition[10]]) - 128) << 8);
+    // sample += ((int(sample11[samplePosition[11]]) - 128) << 8);
+    // sample += ((int(sample12[samplePosition[12]]) - 128) << 8);
+    // sample += ((int(sample13[samplePosition[13]]) - 128) << 8);
+    // sample += ((int(sample14[samplePosition[14]]) - 128) << 8);
+    // sample += ((int(sample15[samplePosition[15]]) - 128) << 8);
 
     for(int i=0; i<NUM_SAMPLES; i++) {
         if(samplePlaying[i]) {
