@@ -299,6 +299,10 @@ public:
     bool isSampler();
     void setSynth(bool s);
     bool isSynth();
+
+
+    // SAMPLER FUNCTIONS
+    void setBitcrush(int b);
 	
 	// FILTER FUNCTIONS
 	void filter();
@@ -599,7 +603,8 @@ private:
 	volatile uint8_t dacSPIB1;
 	volatile uint8_t dacSetA;
 	volatile uint8_t dacSetB;
-    
+
+	int bitcrush;    
     bool sampler;
     bool synth;
     

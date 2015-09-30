@@ -202,6 +202,12 @@ void MMusic::set12bit(bool b) {
 }
 	
 
+void MMusic::setBitcrush(int b) {
+	if(b < 0) b = 0;
+	else if(b > 7) b = 7;
+	bitcrush = b + 8;
+}
+
 void MMusic::samplerInterrupt()
 {
     sample += ((int(sample0[samplePosition[0]]) - 128) << 8);
@@ -220,6 +226,9 @@ void MMusic::samplerInterrupt()
     // sample += ((int(sample13[samplePosition[13]]) - 128) << 8);
     // sample += ((int(sample14[samplePosition[14]]) - 128) << 8);
     // sample += ((int(sample15[samplePosition[15]]) - 128) << 8);
+    sample = ((sample >> bitcrush) << bitcrush);
+    // if(bitcrush > 5) sample >>= 1;
+    // if(bitcrush > 6) sample >>= 1;
 
     for(int i=0; i<NUM_SAMPLES; i++) {
         if(samplePlaying[i]) {

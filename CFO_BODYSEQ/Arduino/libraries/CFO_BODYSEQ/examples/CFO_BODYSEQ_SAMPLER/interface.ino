@@ -54,7 +54,7 @@ void readKeys() {
         keys &= ~(1<<i);
       }
   }
-  Serial.printf("keyTime[0]=%10ld, keyr=%i, keyv=%i - keyState is %i%i%i%i%i%i%i%i, keys is %X \n", keyTime[0], keyr, keyv, keyState[0], keyState[1], keyState[2], keyState[3], keyState[4], keyState[5], keyState[6], keyState[7], keys);
+//  Serial.printf("keyTime[0]=%10ld, keyr=%i, keyv=%i - keyState is %i%i%i%i%i%i%i%i, keys is %X \n", keyTime[0], keyr, keyv, keyState[0], keyState[1], keyState[2], keyState[3], keyState[4], keyState[5], keyState[6], keyState[7], keys);
 }
 
 
@@ -89,6 +89,11 @@ void checkBPM() {
   }
 }
 
+void checkBitcrush() {
+  int bc = (1024 - analogRead(A1)) >> 7;
+  Music.setBitcrush(bc);
+}
+
 
 
 void initInterface() {
@@ -104,38 +109,66 @@ void initInterface() {
 
 
 void updateLEDs() {
+  ledNow = millis();
   int t = trackSelected;
   int s = sampleSelected;
+  leds = 0;
   switch(machineState) {
-    case 0:
-      leds = 0 | (1 << trackPlaying);
-      break;
-    case 1:
-      leds = 0;
-      for(int i=0; i<NUM_STEPS; i++) {
-        leds = leds | (sample[t][s][i] << i);
+    case 0: // PLAY TRACK
+      leds |= (1 << trackPlaying);
+      if(trackChained >= 0) {
+        if((ledNow - ledTime) > ledPulse) {
+          chainedLedState ^= 1;
+          ledTime = ledNow;   
+        }
+        leds |= (chainedLedState << trackChained);
       }
       break;
-    case 2:
-      leds = 0 | (1 << sampleSelected);
+    case 1: // SELECT STEP
+//      leds = 0;
+      for(int i=0; i<NUM_STEPS; i++) {
+        leds |= (sample[t][s][i] << i);
+      }
       break;
-    case 3: // nothing
+    case 2: // SELECT SAMPLE 
+      leds |= (1 << sampleSelected);
       break;
-    case 4:
-      leds = 0 | (1 << trackSelected);
+    case 3: // SELECT TRACK
+      leds |= (1 << trackSelected);
       break;
-    case 5: // nothing
+    case 4: // SELECT TRACK
+      leds |= (1 << trackSelected);
       break;
-    case 6: // nothing
+    case 5: // CHAIN TRACKS PLAYING
+       leds |= (1 << trackPlaying);
+      if(trackChained >= 0) {
+        if((ledNow - ledTime) > ledPulse) {
+          chainedLedState ^= 1;
+          ledTime = ledNow;   
+        }
+        leds |= (chainedLedState << trackChained);
+      }
       break;
-    case 7: // nothing
+    case 6: // COPY TRACK
+      leds |= (1 << trackSelected);
+      break;
+    case 7: // CLEAR TRACK
+      for(int i=0; i<NUM_KEYS; i++) {
+        for(int j=0; j<NUM_SAMPLES; j++) {
+          for(int k=0; k<NUM_STEPS; k++) {
+            leds |= (sample[i][j][k] << i);
+          }
+        }
+      }
       break;
     default:
       break;
   }
 
   for (int i = 0; i<8; i++) {
+    leds |= (1 << indxLED);
     digitalWrite(seqLed[i], leds & (1 << i));
+//    leds ^= (1 << indxLED);
   }
 }
 

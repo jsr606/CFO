@@ -20,7 +20,9 @@
 #define NUM_LEDS 8
 
 int mode;
-unsigned long debounceTime = 40;
+unsigned long debounceTime = 100;
+unsigned long debounceTimeDefault = 100;
+unsigned long debounceTimeLong = 500;
 
 int _bpm;
 
@@ -28,12 +30,20 @@ int trackPlaying = 0 ;
 int trackSelected = 0;
 int sampleSelected = 0;
 int stepSelected = 0;
+int trackChained = -1;
 
 int s1;
-int indx1 = 0;
-int sample[NUM_TRACKS][NUM_SAMPLES][NUM_STEPS];
+int indx = 0;
+int indxLED;
+uint8_t sample[NUM_TRACKS][NUM_SAMPLES][NUM_STEPS];
 
 int leds;
+int chainedLedState = 0;
+unsigned long ledNow;
+unsigned long ledTime = 0;
+unsigned long ledPulse = 100;
+
+bool inStartupMode = true;
 
 
 // old stuff
@@ -79,67 +89,56 @@ void setup() {
   usbMIDI.setHandleControlChange(OnControlChange);
   usbMIDI.setHandleRealTimeSystem(RealTimeSystem);
   analogReadAveraging(32);
-  delay(2000);
   Sequencer.init(120);
 //  Sequencer.setInternalClock(true);  
   s1 = Sequencer.newSequence(NOTE_16, &s1cb);
+//  resetMemory();
+  loadSequences();
   initInterface();
   Sequencer.startSequence(s1);
 
-
-  for(int i=0; i<NUM_TRACKS; i++) {
-    for(int j=0; j<NUM_SAMPLES; j++) {
-      for(int k=0; k<NUM_STEPS; k++) {
-        sample[i][j][k] = 0;
-      }
-    }
-  }
 }
 
 
 void loop() {
+
   Sequencer.update();
   usbMIDI.read();
   Midi.checkSerialMidi();
   readButtons();
   readKeys();
   checkBPM();
-//    Serial.print("Playing Track: ");
-//    Serial.println(trackPlaying);
-//    Serial.print("Selected Sample: ");
-//    Serial.println(sampleSelected);
-//    Serial.print("Selected Track: ");
-//    Serial.println(trackSelected);    
+  checkBitcrush();
 
-
-  //  if(buttonChange || keyChange) {
-    switch(machineState) {
-      case 0:
-        playTrack();
-        break;
-      case 1:
-        selectStep();
-        break;
-      case 2:
-        selectSample();
-        break;
-      case 3: // nothing
-        break;
-      case 4:
-        selectTrack();
-        break;
-      case 5: // nothing
-        break;
-      case 6: // nothing
-        break;
-      case 7: // nothing
-        break;
-      default:
-        break;
-    }
-    updateLEDs();
-//    buttonChange = 0;
-//  }
+  switch(machineState) {
+    case 0:
+      playTrack();
+      break;
+    case 1:
+      selectStep();
+      break;
+    case 2:
+      selectSample();
+      break;
+    case 3:
+      selectTrack();
+      break;
+    case 4:
+      selectTrack();
+      break;
+    case 5: // nothing
+      chainTrack();
+      break;
+    case 6:
+      copyTrack();
+      break;
+    case 7:
+      clearTrack();
+      break;
+    default:
+      break;
+  }
+  updateLEDs();
 }
   
   
@@ -148,9 +147,9 @@ void playTrack() {
     Serial.println("PLAY TRACK");
     for(int i = 0; i < NUM_KEYS; i++) {
       if(keys & (1 << i)) {
-        trackPlaying = i;
-        // Serial.print("Playing Track: ");
-        // Serial.println(trackPlaying);
+        if(trackPlaying == i) trackChained = -1;
+        if(trackChained < 0) trackPlaying = i;
+        else trackChained = i;
       }
     }
   keyChange = 0;
@@ -160,10 +159,13 @@ void playTrack() {
 void selectStep() {
   if(keyChange) {
     Serial.println("SELECT STEP");
-    for(int i = 0; i < NUM_KEYS; i++) {
-      if(keys & (1 << i)) {
-        stepSelected = i;
-        sample[trackSelected][sampleSelected][stepSelected] ^= 1;
+    for(int k = 0; k < NUM_KEYS; k++) {
+      if(keys & (1 << k)) {
+        stepSelected = k;
+        int j = sampleSelected;
+        int i = trackSelected;
+        sample[i][j][k] ^= 1;
+        EEPROM.write(k + NUM_SAMPLES * (j + i * NUM_TRACKS), sample[i][j][k]);
       }
     }
     keyChange = 0;
@@ -177,8 +179,6 @@ void selectSample() {
     for(int i = 0; i < NUM_KEYS; i++) {
       if(keys & (1 << i)) {
         sampleSelected = i;
-        // Serial.print("Selected Sample: ");
-        // Serial.println(sampleSelected);    
       }
     }
     keyChange = 0;
@@ -191,18 +191,96 @@ void selectTrack() {
     for(int i = 0; i < NUM_KEYS; i++) {
       if(keys & (1 << i)) {
         trackSelected = i;
-        // Serial.print("Selected Track: ");
-        // Serial.println(trackSelected);    
       }
     }
     keyChange = 0;
   }
 }
 
-void s1cb() {
-  for(int i=0; i<NUM_SAMPLES; i++) {
-    if(sample[trackPlaying][i][indx1]) Music.noteOnSample(i);
-  }
-  indx1++;
-  if(indx1 >= NUM_STEPS) indx1 = 0;
+void chainTrack() {
+  if(keyChange) {
+    Serial.println("SELECT TRACK");
+    for(int i = 0; i < NUM_KEYS; i++) {
+      if(keys & (1 << i)) {
+        if(i == trackChained) trackChained = -1;
+        else trackChained = i;
+      }
+    }
+    keyChange = 0;
+  }  
 }
+
+void copyTrack() {
+  if(keyChange) {
+    debounceTime = debounceTimeLong;
+    Serial.println("COPY TRACK");
+    for(int i = 0; i < NUM_KEYS; i++) {
+      if(keys & (1 << i)) {
+        for(int j=0; j<NUM_SAMPLES; j++) {
+          for(int k=0; k<NUM_STEPS; k++) {
+            sample[i][j][k] = sample[trackSelected][j][k];
+            EEPROM.write(k + NUM_SAMPLES * (j + i * NUM_TRACKS), sample[i][j][k]);
+          }
+        }
+      }
+    }
+    keyChange = 0;
+    debounceTime = debounceTimeDefault;
+  }
+}
+
+void clearTrack() {
+  if(keyChange) {
+    Serial.println("CLEAR TRACK");
+    for(int i = 0; i < NUM_KEYS; i++) {
+      if(keys & (1 << i)) {
+        for(int j=0; j<NUM_SAMPLES; j++) {
+          for(int k=0; k<NUM_STEPS; k++) {
+            sample[i][j][k] = 0;
+            EEPROM.write(k + NUM_SAMPLES * (j + i * NUM_TRACKS), 0);
+          }
+        }
+      }
+    }
+    keyChange = 0;
+  }
+}
+
+
+void resetMemory() {
+  for(int i=0; i<NUM_TRACKS; i++) {
+    for(int j=0; j<NUM_SAMPLES; j++) {
+      for(int k=0; k<NUM_STEPS; k++) {
+        EEPROM.write(k + NUM_SAMPLES * (j + i * NUM_TRACKS), 0);
+      }
+    }
+  }  
+}
+
+void loadSequences() {
+  for(int i=0; i<NUM_TRACKS; i++) {
+    for(int j=0; j<NUM_SAMPLES; j++) {
+      for(int k=0; k<NUM_STEPS; k++) {
+        sample[i][j][k] = EEPROM.read(k + NUM_SAMPLES * (j + i * NUM_TRACKS));
+      }
+    }
+  }  
+}
+
+void s1cb() {
+  indxLED = indx;
+  for(int i=0; i<NUM_SAMPLES; i++) {
+    if(sample[trackPlaying][i][indx]) Music.noteOnSample(i);
+  }
+  indx++;
+  if(indx >= NUM_STEPS) {
+    indx = 0;
+    if(trackChained < 0);
+    else {
+      int t = trackPlaying;
+      trackPlaying = trackChained;
+      trackChained = t;
+    }
+  }
+}
+
