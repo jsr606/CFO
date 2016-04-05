@@ -53,7 +53,7 @@ public:
     int touchC();
     
     void RGB(int* rgbc);
-    
+
     int luxA();
     int luxB();
     

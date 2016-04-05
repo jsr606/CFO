@@ -44,7 +44,11 @@ void OnNoteOn(byte channel, byte note, byte velocity) {
     MIDI_SERIAL.write(byte(0x90 | (channel & 0x0F)));
     MIDI_SERIAL.write(byte(0x7F & note));
     MIDI_SERIAL.write(byte(0x7F & velocity));
-//    Serial.write("sent MIDI noteOn on MIDI OUT????");
+
+    // add visual feedback to MIDI notes in?
+    // digitalWrite(13,HIGH);
+
+    // Serial.write("sent MIDI noteOn on MIDI OUT????");
 }
 
 void OnNoteOff(byte channel, byte note, byte velocity) {
@@ -55,6 +59,9 @@ void OnNoteOff(byte channel, byte note, byte velocity) {
     MIDI_SERIAL.write(byte(0x80 | (channel & 0x0F)));
     MIDI_SERIAL.write(byte(0x7F & note));
     MIDI_SERIAL.write(byte(0x7F & velocity));
+
+    // add visual feedback to MIDI notes in?
+    // digitalWrite(13,LOW);
 }
 
 void OnControlChange(byte channel, byte control, byte value) {
@@ -69,6 +76,7 @@ void OnControlChange(byte channel, byte control, byte value) {
 
 void RealTimeSystem(byte realtimebyte) {
     Midi.midiRealTimeHandler(realtimebyte);
+
 /*
     if(realtimebyte == MIDI_CLOCK) {
         Midi.clock();
