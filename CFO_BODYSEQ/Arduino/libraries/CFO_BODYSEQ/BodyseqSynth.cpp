@@ -30,6 +30,8 @@ MMusic Music;
 MMidi Midi;
 
 
+int envelopeMultiplier = 5, currentEnvelopeCycle = 0;
+
 const uint16_t sineTable[] = { 
 #include <FrictionSineTable16bitHex.inc>
 };
@@ -166,8 +168,14 @@ void synth_isr(void) {
     //    Music.output2DAC();
 
     if(Music.isSynth()) {
-        Music.envelope1();
-        Music.envelope2();
+
+    	// envelope delay
+    	if (currentEnvelopeCycle % envelopeMultiplier == 0) {
+        	Music.envelope1();
+        	Music.envelope2();
+    	}
+    	currentEnvelopeCycle++;
+
         if(Music.is12bit) Music.synthInterrupt12bitSineFM();
     //  if(Music.is12bit) Music.synthInterrupt12bitSawFM();
         else Music.synthInterrupt8bitFM();
@@ -403,47 +411,51 @@ void MMusic::envelope1() {
 	
 	if(envelopeOn1) {
 
-		// Attack
-		if(env1Stage == 1) {
-			env1 += 1; // to make sure the envelope increases when (MAX_ENV_GAIN-env1) is smaller than attack1
-			env1 += (MAX_ENV_GAIN - env1)/attack1;
-			if(velPeak1 < env1) {
-				env1 = velPeak1;
-				env1Stage = 2;
+
+			// Attack
+			if(env1Stage == 1) {
+				env1 += 1; // to make sure the envelope increases when (MAX_ENV_GAIN-env1) is smaller than attack1
+				env1 += (MAX_ENV_GAIN - env1)/attack1;
+				if(velPeak1 < env1) {
+					env1 = velPeak1;
+					env1Stage = 2;
+				}
 			}
-		}
-		// Decay
-		else if(env1Stage == 2) {
-			env1 += -1;	// to make sure the envelope decreases when (velSustain1-env1) is smaller than decay1
-			env1 += (velSustain1-env1)/decay1;
-			if(env1 < velSustain1 || MAX_ENV_GAIN < env1) {
+			// Decay
+			else if(env1Stage == 2) {
+				env1 += -1;	// to make sure the envelope decreases when (velSustain1-env1) is smaller than decay1
+				env1 += (velSustain1-env1)/decay1;
+				if(env1 < velSustain1 || MAX_ENV_GAIN < env1) {
+					env1 = velSustain1;
+					env1Stage = 3;
+				}
+			}
+			// Sustain
+			else if (env1Stage == 3) {
 				env1 = velSustain1;
-				env1Stage = 3;
 			}
-		}
-		// Sustain
-		else if (env1Stage == 3) {
-			env1 = velSustain1;
+
+			// Release
+			else if (env1Stage == 4) {
+				env1 += -1; // to make sure the envelope decreases when (0-env1) is smaller than release1
+				env1 += (0 - env1) / release1;
+				if(env1 < 0 || MAX_ENV_GAIN < env1) {
+					env1 = 0;
+					env1Stage = 0;
+				}
+			}
+					 
+			// No gain
+			else if (env1Stage == 0) {
+				env1 = 0;
+			}
+
+		} else {
+			env1 = 65535;
 		}
 
-		// Release
-		else if (env1Stage == 4) {
-			env1 += -1; // to make sure the envelope decreases when (0-env1) is smaller than release1
-			env1 += (0 - env1) / release1;
-			if(env1 < 0 || MAX_ENV_GAIN < env1) {
-				env1 = 0;
-				env1Stage = 0;
-			}
-		}
-				 
-		// No gain
-		else if (env1Stage == 0) {
-			env1 = 0;
-		}
-				 
-	} else {
-		env1 = 65535;
-	}
+
+	
 
 }
 
@@ -453,47 +465,48 @@ void MMusic::envelope2() {
 	
 	if(envelopeOn2) {
 
-		// Attack
-		if(env2Stage == 1) {
-			env2 += 1; // to make sure the envelope increases when (MAX_ENV_GAIN-env2) is smaller than attack1
-			env2 += (MAX_ENV_GAIN-env2)/attack2;
-			if(velPeak2 < env2) {
-				env2 = velPeak2;
-				env2Stage = 2;
+
+			// Attack
+			if(env2Stage == 1) {
+				env2 += 1; // to make sure the envelope increases when (MAX_ENV_GAIN-env2) is smaller than attack1
+				env2 += (MAX_ENV_GAIN-env2)/attack2;
+				if(velPeak2 < env2) {
+					env2 = velPeak2;
+					env2Stage = 2;
+				}
 			}
-		}
-		// Decay
-		else if(env2Stage == 2) {
-			env2 += -1;	// to make sure the envelope decreases when (velSustain2-env2) is smaller than decay2
-			env2 += (velSustain2-env2)/decay2;
-			if(env2 < velSustain2 || MAX_ENV_GAIN < env2) {
+			// Decay
+			else if(env2Stage == 2) {
+				env2 += -1;	// to make sure the envelope decreases when (velSustain2-env2) is smaller than decay2
+				env2 += (velSustain2-env2)/decay2;
+				if(env2 < velSustain2 || MAX_ENV_GAIN < env2) {
+					env2 = velSustain2;
+					env2Stage = 3;
+				}
+			}
+			// Sustain
+			else if (env2Stage == 3) {
 				env2 = velSustain2;
-				env2Stage = 3;
 			}
-		}
-		// Sustain
-		else if (env2Stage == 3) {
-			env2 = velSustain2;
-		}
 
-		// Release
-		else if (env2Stage == 4) {
-			env2 += -1; // to make sure the envelope decreases when (0-env2) is smaller than release2
-			env2 += (0 - env2) / release2;
-			if(env2 < 0 || MAX_ENV_GAIN < env2) {
+			// Release
+			else if (env2Stage == 4) {
+				env2 += -1; // to make sure the envelope decreases when (0-env2) is smaller than release2
+				env2 += (0 - env2) / release2;
+				if(env2 < 0 || MAX_ENV_GAIN < env2) {
+					env2 = 0;
+					env2Stage = 0;
+				}
+			}
+
+			// No gain
+			else if (env2Stage == 0) {
 				env2 = 0;
-				env2Stage = 0;
+				//accumulator1 = 0;
+				//accumulator2 = 0;
+				//accumulator3 = 0;
 			}
-		}
-
-		// No gain
-		else if (env2Stage == 0) {
-			env2 = 0;
-			//accumulator1 = 0;
-			//accumulator2 = 0;
-			//accumulator3 = 0;
-		}
-
+		
 	} else {
 		env2 = 65535;
 	}
@@ -572,6 +585,11 @@ void MMusic::spi_setup()
 {
     spi4teensy3::init(0,0,0);
 	pinMode(DAC_CS, OUTPUT);
+}
+
+void MMusic::setEnvelopeMultiplier(uint8_t p)
+{
+	envelopeMultiplier = p;
 }
 
 
@@ -2290,6 +2308,10 @@ void MMidi::controller(uint8_t channel, uint8_t number, uint8_t value) {
 		case FM_OCTAVES:
 			Music.setFMoctaves(value+1);
 			break;
+		case ENVELOPE_MULTIPLIER:
+		    envelopeMultiplier = value;
+		    envelopeMultiplier = constrain(envelopeMultiplier,1,127);
+		    break;
 		case LFO1:
 			if(value) {
 				Music.setOsc1LFO(true);

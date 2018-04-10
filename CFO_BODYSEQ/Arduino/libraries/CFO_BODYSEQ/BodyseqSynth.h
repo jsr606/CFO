@@ -231,6 +231,7 @@
 #define SEQ_CONTINUE 97
 #define SEQ_JUMP_POSITION 98
 
+#define ENVELOPE_MULTIPLIER 100
 
 //#define CFO_COMMAND 90
 //#define CFO_LIGHT_LED 91
@@ -398,6 +399,7 @@ public:
 	void setEnv1Release(uint8_t rel); // 0 - 127             
 	void setEnv1VelSustain(uint8_t vel); // 0 - 127
 	void setEnv1VelPeak(uint8_t vel); // 0 - 127
+	void setEnvelopeMultiplier(uint8_t mult);
 	
 	void enableEnvelope2();
 	void disableEnvelope2();
