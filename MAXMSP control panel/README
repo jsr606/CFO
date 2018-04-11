@@ -12,4 +12,4 @@ to get started:
 4. make sounds! (please note the control panel does not generate MIDI notes, it only sets up the synthesis engine. to play notes, you either have to do this with the synth itself or via MIDI sequencing from a DAW or something similar)
 5. to save or recall presets select bank U/A/B/C (U is user presets, will be saved to CFO EEPROM, and can be restored after power off)
 
-![control panel preview](https://github.com/jsr606/CFO/blob/master/MAXMSP%20control%20panel/dashboard%20preview.png)
+![control panel preview](dashboard%20preview.png)
