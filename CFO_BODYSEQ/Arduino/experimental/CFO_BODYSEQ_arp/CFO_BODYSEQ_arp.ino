@@ -542,7 +542,7 @@ void changeSequenceBank() {
 }
 
 void changePreset() {
-  int newPreset = map(analogRead(pot2), 0, 1023, 0, 31);
+  int newPreset = map(analogRead(pot2), 0, 1023, 0, 4*16-1);
   if (preset != newPreset) { // only do something if preset has changed
     // NB! user preset 0-16 might be empty, resulting in crazy sounds!
     if (debug) Serial.print("new preset ");
@@ -758,3 +758,4 @@ void checkBPM() {
     }
   }
 }
+
