@@ -86,6 +86,7 @@ int currentArpNote = 0;
 unsigned long lastArp = millis();
 int arpNotes = 0, lastArpNote = -1;
 int arpNote[8] = { -1, -1, -1, -1, -1, -1, -1, -1};
+boolean arpNoteOn[8] = {false, false, false, false, false, false, false, false};
 int arpDivider = 4;
 boolean arpActive = false;
 boolean freezeArp = false;
@@ -196,63 +197,9 @@ void loop() {
     if (arpActive) {
       // arp mode
       arp();
-
     } else {
-
-      // standard sequence editor
-
-      // button 0 released
-      if (buttonAction[0] == true && buttonState[0] == HIGH && onlyButtonsPressed) {
-        // start / stop sequencer
-        sequencerRunning = !sequencerRunning;
-        if (sequencerRunning) {
-          Sequencer.start();
-          digitalWrite(statusLed1, HIGH);
-        } else {
-          Sequencer.stop();
-          Serial.println("stop");
-          seqNoteDump();
-          digitalWrite(statusLed1, LOW);
-        }
-      }
-
-      // button 0 pushed
-      if (buttonState[0] == LOW) {
-        noteInputFromBodyswitches();
-      }
-      // button 1 pushed
-      if (buttonState[1] == LOW) {
-        eraseNotesFromBodyswitches();
-        if (pot1Moved) {
-          // change sequencer speed
-          checkBPM();
-        }
-      }
-      // button 2 pushed
-      if (buttonState[2] == LOW) {
-        changeSequenceBank();
-        activeSeq = bank;
-
-      }
-      // button 0 and 2 pushed
-      if (buttonState[2] == LOW && buttonState[0] == LOW) {
-        int lowestSwitch = 0, highestSwitch = 0;
-        if (bodySwitchesTouched) {
-          for (int i = 0; i < 8; i++) {
-            if (bodySwitchVal[i] > 0) {
-              highestSwitch = i;
-            }
-            if (bodySwitchVal[7 - i] > 0) {
-              lowestSwitch = 7 - i;
-            }
-          }
-          seqStart = lowestSwitch;
-          seqEnd = highestSwitch;
-        }
-      }
-      lastInput = millis();
-
-
+      // sequencer mode
+      sequencer();
     }
   }
 
@@ -265,6 +212,63 @@ void loop() {
       nextRandom = random(randFreqMin, randFreqMax) + millis();
     }
   }
+}
+
+void sequencer() {
+  // standard sequence editor
+
+  // button 0 released
+  if (buttonAction[0] == true && buttonState[0] == HIGH && onlyButtonsPressed) {
+    // start / stop sequencer
+    sequencerRunning = !sequencerRunning;
+    if (sequencerRunning) {
+      Sequencer.start();
+      digitalWrite(statusLed1, HIGH);
+    } else {
+      Sequencer.stop();
+      Serial.println("stop");
+      seqNoteDump();
+      digitalWrite(statusLed1, LOW);
+    }
+  }
+
+  // button 0 pushed
+  if (buttonState[0] == LOW) {
+    noteInputFromBodyswitches();
+  }
+  // button 1 pushed
+  if (buttonState[1] == LOW) {
+    eraseNotesFromBodyswitches();
+    if (pot1Moved) {
+      // change sequencer speed
+      checkBPM();
+    }
+  }
+  // button 2 pushed
+  if (buttonState[2] == LOW) {
+    changeSequenceBank();
+    activeSeq = bank;
+
+  }
+  // button 0 and 2 pushed
+  if (buttonState[2] == LOW && buttonState[0] == LOW) {
+    int lowestSwitch = 0, highestSwitch = 0;
+    if (bodySwitchesTouched) {
+      for (int i = 0; i < 8; i++) {
+        if (bodySwitchVal[i] > 0) {
+          highestSwitch = i;
+        }
+        if (bodySwitchVal[7 - i] > 0) {
+          lowestSwitch = 7 - i;
+        }
+      }
+      seqStart = lowestSwitch;
+      seqEnd = highestSwitch;
+    }
+  }
+  lastInput = millis();
+
+
 }
 
 int highestSwitch() {
@@ -297,9 +301,9 @@ void seqNoteDump() {
   }
 }
 
-void arp () {
 
-  Music.setCutoff((analogRead(pot1)) * 64);
+
+void arp () {
 
   // do the arp yo
   if (!freezeArp) {
@@ -311,11 +315,13 @@ void arp () {
         digitalWrite(seqLed[i], HIGH);
         int oct = map(bodySwitchVal[i], 0, 127, -1, 2);
 
-        arpNote[arpNotes] = baseNote + activeScale[i] + oct * 12;
+        arpNote[arpNotes] = activeScale[i] + oct * 12;
         arpNotes++;
+        arpNoteOn[i] = true;
 
       } else {
         digitalWrite(seqLed[i], LOW);
+        arpNoteOn[i] = false;
       }
     }
   }
@@ -326,27 +332,34 @@ void arp () {
       int s = highestSwitch();
 
       if (s > -1) {
-        arpTranspose = s * 12 - 3 * 12;
+        arpTranspose = s * 12 - 4 * 12;
       } else {
         arpTranspose = 0;
       }
 
       // exit arp by pushing button 1 and 2
-
       if (buttonAction[2] == true && buttonState[2] == LOW) {
         freezeArp = false;
       }
-
     }
 
+    // update leds
+    if (seqRest < millis()) {
+      for (int i = 0; i < 8; i++) {
+        if (arpNoteOn[i]) {
+          digitalWrite(seqLed[i], HIGH);
+        } else {
+          digitalWrite(seqLed[i], LOW);
+        }
+      }
+    }
 
   }
-
 
   if (arpNotes == 1) {
     if (arpNote[0] != lastArpNote) {
       if (lastArp + stepTime < millis()) {
-        Music.noteOn(arpNote[0]);
+        Music.noteOn(baseNote + arpNote[0] + arpTranspose);
         lastArpNote = arpNote[0];
         lastArp = millis();
       }
@@ -356,16 +369,15 @@ void arp () {
   if (arpNotes > 1) {
 
     if (lastArp + stepTime / arpDivider < millis() ) {
-      //Serial.print("doing the arp ");
 
-      Music.noteOn(arpNote[currentArpNote] + arpTranspose);
+      Music.noteOn(baseNote + arpNote[currentArpNote] + arpTranspose);
       //Serial.println(arpNote[currentArpNote]);
       lastArp = millis();
       currentArpNote++;
 
       if (currentArpNote > arpNotes - 1) currentArpNote = 0;
 
-      arpDivider = map(analogRead(pot2), 0, 1023, 1, 6);
+      if (!buttonsPressed) arpDivider = map(analogRead(pot2), 0, 1023, 1, 6);
 
     }
   }
@@ -382,28 +394,6 @@ void arp () {
       }
     }
   }
-}
-
-void sampleAverageNoise() {
-  Serial.println("sampling average noise levels: ");
-  int samples = 20;
-  for (int i = 0; i < 8; i++) {
-    int reading = 0;
-    for (int j = 0; j < samples; j++) {
-      reading += analogRead(bodySwitch[i]);
-      Serial.print(reading);
-      Serial.print("\t");
-    }
-    reading = reading / samples;
-
-    Serial.print("noise level on bodyswitch[");
-    Serial.print(i);
-    Serial.print("] is ");
-    Serial.println(reading);
-    averageNoise += reading;
-  }
-  averageNoise = averageNoise / 8 + noiseThreshold;
-  Serial.println(averageNoise);
 }
 
 void setCutoffFromPots() {
@@ -431,8 +421,6 @@ void updateLEDs() {
   if (lastStep + stepTime - blinkTime / 2 < millis()) {
     digitalWrite(seqLed[seqStep], LOW);
   }
-
-
 }
 
 void newActiveScale (int length) {
@@ -461,7 +449,6 @@ void eraseNotesFromBodyswitches() {
       seqNote[activeSeq * 8 + i] = -1;
     }
   }
-  //updateLEDs();
 }
 
 void noteInputFromBodyswitches() {
@@ -483,7 +470,6 @@ void noteInputFromBodyswitches() {
       if (debug) Serial.println(seqNote[activeSeq * 8 + i]);
     }
   }
-  //updateLEDs();
 }
 
 void readPots() {
@@ -511,20 +497,10 @@ void readPots() {
   else {
     pot2Moved = false;
   }
-
-  /*
-    if (potsMoved) {
-    if (debug) Serial.print("pot 1 ");
-    if (debug) Serial.println(potVal1);
-    if (debug) Serial.print("pot 2 ");
-    if (debug) Serial.println(potVal2);
-    }
-  */
 }
 
 void changeOctave() {
-
-  // change from pot
+  // change from pot 1
   int newOctave = map(analogRead(pot1), 0, 1023, -3, 4);
   baseNote = 36 + newOctave * 12;
 
@@ -538,9 +514,7 @@ void changeOctave() {
       digitalWrite(seqLed[i], LOW);
     }
   }
-
 }
-
 
 void changeSequenceBank() {
 
@@ -586,11 +560,12 @@ void changePreset() {
 
 void sequenceCallback() {
   // this is a callback function, called every time the sequencer steps
-
   // calculate how many millis have passed since last step
+
   unsigned long thisStep = millis();
   stepTime = thisStep - lastStep;
   lastStep = thisStep;
+
   // and calculate sequencer blink time
   blinkTime = max(stepTime >> 2, 100);
 
@@ -603,12 +578,9 @@ void sequenceCallback() {
   if (seqNote[note] != -1 && arpActive == false) {
     Music.noteOn(baseNote + seqNote[note]);
   }
-
-  //updateLEDs();
 }
 
 void updateSequence() {
-
   if (lastStep + stepTime < millis()) {
 
     seqStep++;
@@ -620,10 +592,7 @@ void updateSequence() {
       Music.noteOn(baseNote + seqNote[note]);
     }
     lastStep = millis();
-
   }
-
-  //updateLEDs();
 }
 
 
@@ -634,7 +603,7 @@ void readBodyswitches() {
     int reading = analogRead (bodySwitch[i]);
     maxBodyReading = max(maxBodyReading, reading);
 
-    if (reading > averageNoise) { // averageNoise is sampled on startup
+    if (reading > averageNoise*2) { // averageNoise is sampled on startup
       int midiVal = map (reading, averageNoise, maxBodyReading, 0, 127);
       bodySwitchVal[i] = constrain(midiVal, 0, 127);
       bodySwitchesTouched = true;
@@ -653,7 +622,6 @@ void readBodyswitches() {
 void printFeedback() {
   for (int i = 0; i < 8; i++) {
     int reading = analogRead (bodySwitch[i]);
-
     seqLedVal[i] = reading / 4;
     Serial.print(i);
     Serial.print(": ");
@@ -667,11 +635,11 @@ void printFeedback() {
   Serial.print("\t");
   Serial.print(potVal2);
   Serial.println();
-
-
 }
 
 void startupAnimation() {
+  // flashy leds
+
   digitalWrite(statusLed1, HIGH);
 
   for (int i = 0; i < 8; i++) {
@@ -683,7 +651,6 @@ void startupAnimation() {
     delay(30);
   }
 
-
   for (int i = 0; i < 8; i++) {
     digitalWrite(seqLed[7 - i], HIGH);
     delay(30);
@@ -694,7 +661,6 @@ void startupAnimation() {
   }
 
   digitalWrite(statusLed1, LOW);
-
   delay(100);
 }
 
@@ -735,9 +701,28 @@ void readButtons() {
   }
 }
 
-//////////
-// POTS //
-//////////
+void sampleAverageNoise() {
+  Serial.println("sampling average noise levels: ");
+  int samples = 20;
+  for (int i = 0; i < 8; i++) {
+    int reading = 0;
+    for (int j = 0; j < samples; j++) {
+      reading += analogRead(bodySwitch[i]);
+      Serial.print(reading);
+      Serial.print("\t");
+    }
+    reading = reading / samples;
+
+    Serial.print("noise level on bodyswitch[");
+    Serial.print(i);
+    Serial.print("] is ");
+    Serial.println(reading);
+    averageNoise += reading;
+  }
+  averageNoise = averageNoise / 8 + noiseThreshold;
+  Serial.println(averageNoise);
+}
+
 void checkBPM() {
   // >> is C for bitwise shift right.
   if (debug) Serial.println("checkBPM");
@@ -763,7 +748,7 @@ void checkBPM() {
       Midi.setMidiClockThru(false);
       Midi.setMidiClockOut(true);
       Sequencer.setInternalClock(true);
-      //      Sequencer.sequencerContinue();
+      // Sequencer.sequencerContinue();
     }
   }
 }
