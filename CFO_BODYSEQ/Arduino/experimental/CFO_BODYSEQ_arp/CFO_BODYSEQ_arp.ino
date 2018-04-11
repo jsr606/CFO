@@ -81,6 +81,7 @@ int potVal1 = 0, potVal2 = 0;
 boolean pot1Moved = false, pot2Moved = false, potsMoved = false;
 int potNoise = 1;
 unsigned long seqRest = millis();
+unsigned long inputRest = millis();
 
 int currentArpNote = 0;
 unsigned long lastArp = millis();
@@ -188,6 +189,11 @@ void loop() {
       if (pot1Moved) {
         changeOctave();
       }
+    }
+
+    if (buttonAction[2] && buttonState[2] == HIGH) {
+      Serial.println("input rest");
+      inputRest = millis() + 300;
     }
 
     if (!buttonsPressed && bodySwitchesTouched) {
@@ -377,7 +383,7 @@ void arp () {
 
       if (currentArpNote > arpNotes - 1) currentArpNote = 0;
 
-      if (!buttonsPressed) arpDivider = map(analogRead(pot2), 0, 1023, 1, 6);
+      if (!buttonsPressed && pot2Moved && inputRest < millis()) arpDivider = map(analogRead(pot2), 0, 1023, 1, 6);
 
     }
   }
@@ -603,7 +609,7 @@ void readBodyswitches() {
     int reading = analogRead (bodySwitch[i]);
     maxBodyReading = max(maxBodyReading, reading);
 
-    if (reading > averageNoise*2) { // averageNoise is sampled on startup
+    if (reading > averageNoise * 2) { // averageNoise is sampled on startup
       int midiVal = map (reading, averageNoise, maxBodyReading, 0, 127);
       bodySwitchVal[i] = constrain(midiVal, 0, 127);
       bodySwitchesTouched = true;
