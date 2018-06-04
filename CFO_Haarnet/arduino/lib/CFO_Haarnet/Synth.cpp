@@ -363,16 +363,19 @@ void MMusic::getPreset(uint8_t p)
 		for(uint8_t i=2; i<128; i++) {
 			instrument[i] = userPresets[p][i];
 			Midi.controller(Midi.midiChannel, i, instrument[i]);
-//			Serial.println(userPresets[p][i]);
+//			Serial.print(userPresets[p][i]);
+//			Serial.print(",");
 		}
 	} else {
 		for(uint8_t i=2; i<128; i++) {
 			instrument[i] = programPresets[(p-MAX_PRESETS)*PRESET_SIZE + i];
 			Midi.controller(Midi.midiChannel, i, instrument[i]);
-			//			Serial.println(userPresets[p][i]);
+//			Serial.println(userPresets[p][i]);
+//			Serial.print(",");
 		}
 		
 	}
+	Serial.println();
 
 //	sei();
 }
@@ -502,6 +505,17 @@ void MMusic::loadAllPresets()
 			userPresets[p][i] = EEPROM.read(p * PRESET_SIZE + i);
 		}		
 	}
+}
+
+void MMusic::dumpAllPresets() {
+	Serial.println("all user presets follow");
+	for(uint8_t p=0; p<MAX_PRESETS;p++) {
+		for(uint8_t i=0; i<128; i++) {
+			Serial.print(userPresets[p][i]);
+			Serial.print(", ");
+		}
+		Serial.println();
+	}		
 }
 
 void MMusic::init()

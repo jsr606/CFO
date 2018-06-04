@@ -222,6 +222,7 @@ public:
 	
 	// PRESETS
 	void getPreset(uint8_t p);
+	void dumpAllPresets();
 	void getRandomizedPreset(uint8_t p, uint8_t r);
 	void savePreset(uint8_t p);
 	void sendInstrument();
